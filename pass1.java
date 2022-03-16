@@ -5,8 +5,9 @@ import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.lang.Math;
 
 class pass1
@@ -24,7 +25,7 @@ class pass1
     static Hashtable<String, ArrayList<String>> OPTAB = tables.OPTAB();
     static Hashtable<String, String> ASSEMDIR =  tables.ASSEMDIR();
     static Hashtable<String, ArrayList<String>> REGISTER =  tables.REGISTER();
-    static Hashtable<String, String> SYMTAB = new Hashtable<String, String>();
+    static LinkedHashMap<String, String> SYMTAB = new LinkedHashMap<String, String>();
 
     public static String get_label(String line)
     {
@@ -223,6 +224,12 @@ class pass1
 
                     else if (OPCODE.equals("RESB"))
                     {LOCCTR_next=convert.DectoHex(convert.HextoDec(LOCCTR)+Integer.parseInt(OPERAND));}
+                    
+                    if (!OPCODE.equals("BYTE") && !OPCODE.equals("RESB") && !OPCODE.equals("WORD") && !OPCODE.equals("RESW"))
+                    {LOCCTR = LOCCTR_next;
+                    bw_intermediate.write("\t\t\t\t"+line+"\n");
+                    line = br.readLine();
+                    continue;}
                 }
                 else if (OPTAB.containsKey(OPCODE))
                 {
@@ -254,16 +261,16 @@ class pass1
                 line = br.readLine();
 
             } while(line!=null && !is_end(line));
-            bw_intermediate.write(LOCCTR+"\t\t"+error_flag+"\t\t"+line+"\n");
+            bw_intermediate.write("\t\t\t\t"+line+"\n");
 
             //program length
             bw_intermediate.write("Program Length: "+convert.DectoHex(convert.HextoDec(LOCCTR)+convert.HextoDec(starting_address))+"\n");
 
-            for (Enumeration<String> e = SYMTAB.keys(); e.hasMoreElements();) 
+            for (Map.Entry<String, String> ele : SYMTAB.entrySet()) 
             {
-                String key = (String) e.nextElement();
-                String val = (String) SYMTAB.get(key);
-                line = key+"\t"+val;
+                String key = ele.getKey();
+                String val = ele.getValue();
+                line = key+"\t\t"+val;
                 bw_symboltab.write(line+"\n");
             }
         }

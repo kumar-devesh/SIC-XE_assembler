@@ -130,6 +130,10 @@ class tables
         list.set(1, "3"); //format
         optab.put("OR", (ArrayList<String>) list.clone());
 
+        list.set(0, "D8"); //opcode
+        list.set(1, "3"); //format
+        optab.put("RD", (ArrayList<String>) list.clone());
+
         list.set(0, "AC"); //opcode
         list.set(1, "2"); //format
         optab.put("RMO", (ArrayList<String>) list.clone());
