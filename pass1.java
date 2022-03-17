@@ -145,13 +145,12 @@ class pass1
                     continue;
                 }
 
-                //System.out.println("current line: "+line);
                 LABEL = get_label(line);
                 OPCODE = get_opcode(line);
                 OPERAND = get_operand(line);
 
-                System.out.println("\n"+line);
-                System.out.printf("Label:{%s}, Opcode:{%s}, Operand:{%s}", LABEL,  OPCODE, OPERAND);
+                //System.out.println("\n"+line);
+                //System.out.printf("\n"+"Label:{%s}, Opcode:{%s}, Operand:{%s}", LABEL,  OPCODE, OPERAND);
 
                 /**
                  * write to the symbol table
@@ -233,19 +232,14 @@ class pass1
                 }
                 else if (OPTAB.containsKey(OPCODE))
                 {
-                    System.out.println("::: is opcode!");
                     //increase LOCCTR by the size of instruction
                     ArrayList<String> list = (ArrayList<String>) OPTAB.get(OPCODE);
                     LOCCTR_next = convert.DectoHex(convert.HextoDec(LOCCTR)+Integer.parseInt(list.get(1)));
                 }
                 else if (OPTAB.containsKey(OPCODE.substring(1, OPCODE.length())) && OPCODE.charAt(0)=='+')
                 {
-                    System.out.println("::: is opcode format 4!");
-
                     //increase LOCCTR by the size of instruction
-                    System.out.println("before "+LOCCTR);
                     LOCCTR_next = convert.DectoHex(convert.HextoDec(LOCCTR)+4);
-                    System.out.println("after "+LOCCTR);
                 }
                 else 
                 { 
