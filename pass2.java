@@ -270,6 +270,25 @@ class pass2
         return linerc;
     }
 
+    public static ArrayList<String> isAssemblerDirective(ArrayList<String> tokens)
+    {
+        int index=-1;
+        boolean isAssemblerDirective=false;
+        for(String token: tokens)
+        {
+            index+=1;
+            if (ASSEMDIR.containsKey(token))
+            {isAssemblerDirective=true; break;}
+        }
+        if (isAssemblerDirective)
+        {
+            int i=0;
+            while (i<index)
+            {tokens.remove(0); i+=1;}
+        }
+        return tokens;
+    }
+
     public static void main(String[] args) throws FileNotFoundException, IOException
     {
         /**
@@ -335,7 +354,6 @@ class pass2
             T="T^"+LOCCTR;
             while((line=br.readLine())!=null && !is_end(line))
             {
-                System.out.println("current instruction: "+line);
                 OBJECTCODE="";
                 n=0;
                 i=0;
@@ -351,13 +369,24 @@ class pass2
                     continue;
                 }
                 ArrayList<String> tokens = getTokens(line);
-                printTokens(tokens);
 
                 line = removeComment(line);
-                if(ASSEMDIR.containsKey(tokens.get(0)))
+                tokens = isAssemblerDirective(tokens);
+                printTokens(tokens);
+
+                if(ASSEMDIR.containsKey(tokens.get(0)) || ASSEMDIR.containsKey(tokens.get(1)))
                 {
+                    System.out.println("Assembler directive found");
                     //perform the required assembly
                     String DIR = tokens.get(0);
+                    int idx=0;
+                    if (ASSEMDIR.containsKey(tokens.get(1)))
+                    {
+                        DIR = tokens.get(1);
+                        idx =1;
+                    }
+
+                    // processing of assembler directives
                     if (DIR.equals("BASE"))
                     {
                         // base relative addressing can be used in case pc relative does not work
@@ -378,13 +407,13 @@ class pass2
                     else if (DIR.equals("RESB"))
                     {
                         // write the text record, switch to new
-                        int size = Integer.parseInt(tokens.get(1));
+                        int size = Integer.parseInt(tokens.get(idx+1));
                         LOCCTR = convert.DectoHex(size+convert.HextoDec(LOCCTR));
                     }
                     else if (DIR.equals("RESW"))
                     {
                         // write the text record, switch to new
-                        int size = Integer.parseInt(tokens.get(1))*3;
+                        int size = Integer.parseInt(tokens.get(idx+1))*3;
                         LOCCTR = convert.DectoHex(size+convert.HextoDec(LOCCTR));
                     }
                     else if (DIR.equals("BYTE"))
@@ -392,29 +421,28 @@ class pass2
                         // add the required bytes to listing, text record
                         if (tokens.get(1).charAt(0)=='C')
                         {
-                            OBJECTCODE = convert.toHalfBytes(tokens.get(1).substring(2, tokens.get(1).length()-1));
-                            TSIZE+=OBJECTCODE.length();
-                            LOCCTR = convert.DectoHex(OBJECTCODE.length()+convert.HextoDec(LOCCTR));
+                            OBJECTCODE = convert.toHalfBytes(tokens.get(idx+1).substring(2, tokens.get(idx+1).length()-1));
                         }
                         else if (tokens.get(1).charAt(0)=='X')
                         {
-                            OBJECTCODE = tokens.get(1).substring(2, tokens.get(1).length()-1);
-                            TSIZE+=OBJECTCODE.length();
-                            LOCCTR = convert.DectoHex(OBJECTCODE.length()+convert.HextoDec(LOCCTR));
+                            OBJECTCODE = tokens.get(idx+1).substring(2, tokens.get(idx+1).length()-1);
                         }
+                        TSIZE+=OBJECTCODE.length();
+                        LOCCTR = convert.DectoHex(OBJECTCODE.length()+convert.HextoDec(LOCCTR));
                     }
                     else if (DIR.equals("WORD"))
                     {
                         // add the one word constant to listing, text record
-                        OBJECTCODE = convert.extendTo(6, tokens.get(1));
+                        OBJECTCODE = convert.extendTo(6, tokens.get(idx+1));
                         LOCCTR = convert.DectoHex(OBJECTCODE.length()+convert.HextoDec(LOCCTR));
                     }
 
                     //write this to the assembly listing file
                     addObjectCode(bw_object);
-                    bw_listing.write(line+"\t"+OBJECTCODE+"\n");
+                    bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                     continue;
                 }
+
                 if (OPTAB.containsKey(tokens.get(2)) || (SYMTAB.containsKey(tokens.get(2)) && OPTAB.containsKey(tokens.get(3))) || 
                 OPTAB.containsKey(tokens.get(2).substring(1)) || 
                 (SYMTAB.containsKey(tokens.get(2)) && OPTAB.containsKey(tokens.get(3).substring(1)))) // format4
@@ -439,7 +467,7 @@ class pass2
                             OBJECTCODE = code;
                             LOCCTR = convert.DectoHex(convert.HextoDec(LOCCTR)+1);
                             addObjectCode(bw_object);
-                            bw_listing.write(line+"\t"+OBJECTCODE+"\n");
+                            bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                             continue;
                         }
                     }
@@ -459,7 +487,7 @@ class pass2
                             OBJECTCODE = code;
                             LOCCTR = convert.DectoHex(convert.HextoDec(LOCCTR)+1);
                             addObjectCode(bw_object);
-                            bw_listing.write(line+"\t"+OBJECTCODE+"\n");
+                            bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                             continue;
                         }
                     }
@@ -472,7 +500,7 @@ class pass2
                         code = OP.get(0);
                         format = "4";
                     }
-                    else if (SYMTAB.containsKey(tokens.get(2)) && OPTAB.containsKey(tokens.get(3).substring(1)) && tokens.get(2).charAt(0)=='+')
+                    else if (SYMTAB.containsKey(tokens.get(2)) && OPTAB.containsKey(tokens.get(3).substring(1)) && tokens.get(3).charAt(0)=='+')
                     {
                         //format = 4
                         OPCODE = tokens.get(3).substring(1);
@@ -482,12 +510,15 @@ class pass2
                         format = "4";
                     }
 
+                    if (format.equals(""))
+                    {System.out.println("error here"+line);}
+
                     PC = convert.DectoHex(convert.HextoDec(LOCCTR)+Integer.parseInt(format));
                     if (OPCODE.equals("RSUB") || OPCODE.equals("FIX") || OPCODE.equals("FLOAT"))
                     {
                         OBJECTCODE = code;
                         addObjectCode(bw_object);
-                        bw_listing.write(line+"\t"+OBJECTCODE+"\n");
+                        bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                         continue;
                     }
                     if (OPERAND.charAt(0)=='@')
@@ -502,7 +533,7 @@ class pass2
                         x=1; // index register is being used
                     }
 
-                    code=convert.DectoHex(convert.HextoDec(code)+2*n+i);
+                    // FORMAT 2 instruction
                     if ((OPCODE.charAt(OPCODE.length()-1)=='R' && OPTAB.containsKey(OPCODE.substring(0, OPCODE.length()-1))) || OPCODE.equals("RMO") || OPCODE.equals("CLEAR"))
                     {
                         // register instruction assembly
@@ -513,7 +544,7 @@ class pass2
                             ArrayList<String> reg = new ArrayList<String>();
                             reg = REGISTER.get(OPERAND);
                             String R = convert.extendTo(1, convert.DectoHex(Integer.parseInt(reg.get(0))));
-                            OBJECTCODE = code + R;
+                            OBJECTCODE = code + R + "0";
                         }
                         else if ((OPCODE.charAt(OPCODE.length()-1)=='R' && OPTAB.containsKey(OPCODE.substring(0, OPCODE.length()-1))) || OPCODE.equals("RMO"))
                         {
@@ -533,13 +564,7 @@ class pass2
                         }
                         LOCCTR = PC;
                         addObjectCode(bw_object);
-                        continue;
-                    }
-
-                    if ((OPCODE.charAt(OPCODE.length()-1)=='F' && OPTAB.containsKey(OPCODE.substring(0, OPCODE.length()-1))) 
-                    || OPCODE.equals("LDF") || OPCODE.equals("STF"))
-                    {
-                        // float instruction assembly
+                        bw_listing.write(line + "\t"+ OBJECTCODE + "\n");
                         continue;
                     }
 
@@ -549,6 +574,7 @@ class pass2
                         continue;
                     }
 
+                    code=convert.DectoHex(convert.HextoDec(code)+2*n+i);
                     if (format.equals("4"))
                     {e=1;}
                     else if (!format.equals("4"))
@@ -584,7 +610,7 @@ class pass2
                         {
                             bw_error.write(line+"\t"+"unable to assemble using PC/BASE relative, specify extended mode explicitly \n");
                             OBJECTCODE = code+"0000";
-                            bw_listing.write(line+"\t"+OBJECTCODE+"\n");
+                            bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                             addObjectCode(bw_object);
                             continue;
                         }
@@ -592,10 +618,10 @@ class pass2
                     if (format.equals("4"))
                     {
                         // assembled OPCODE, "x,b,p,e", address => 
-                        OBJECTCODE = convert.DectoHex(convert.HextoDec(code)+2*n+i) + "0001" + convert.extendTo(5, SYMTAB.get(OPERAND));
+                        OBJECTCODE = convert.DectoHex(convert.HextoDec(code)+2*n+i) + "1" + convert.extendTo(5, SYMTAB.get(OPERAND));
                     }
                     addObjectCode(bw_object);
-                    bw_listing.write(line+"\t"+OBJECTCODE+"\n");
+                    bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                 }
             }
         }

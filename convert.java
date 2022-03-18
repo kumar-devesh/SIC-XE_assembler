@@ -49,13 +49,12 @@ class convert
          * 
          * Returns: Hexadecimal String of half bytes 
          */
-        
         String f="";
         int ch=0;
         for(int i=0; i<a.length(); ++i)
         {
             ch = (int) a.charAt(i);
-            f+=(toHexDig((int) ch/16)+toHexDig((int) ch%16));
+            f+=(toHexDig((int)(ch/16))+""+toHexDig((int) ch%16));
         }
         return f;
     }
