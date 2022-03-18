@@ -544,7 +544,7 @@ class pass2
                             ArrayList<String> reg = new ArrayList<String>();
                             reg = REGISTER.get(OPERAND);
                             String R = convert.extendTo(1, convert.DectoHex(Integer.parseInt(reg.get(0))));
-                            OBJECTCODE = code + R + "0";
+                            OBJECTCODE = code + "0" + R;
                         }
                         else if ((OPCODE.charAt(OPCODE.length()-1)=='R' && OPTAB.containsKey(OPCODE.substring(0, OPCODE.length()-1))) || OPCODE.equals("RMO"))
                         {
@@ -614,6 +614,7 @@ class pass2
                             addObjectCode(bw_object);
                             continue;
                         }
+                        OBJECTCODE = code+convert.DectoHex(x*8+b*4+2*p+e)+convert.extendTo(3, disp);
                     }
                     if (format.equals("4"))
                     {
