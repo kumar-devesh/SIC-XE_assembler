@@ -580,13 +580,15 @@ class pass2
                     else if (!format.equals("4"))
                     {
                         String disp="";
+                        PC = convert.DectoHex(convert.HextoDec(LOCCTR)+3);
                         // if pc relative is possible
                         if (checkPCrel())
                         {
                             // TA = PC+disp
                             p=1;
-                            disp = convert.DectoHex(convert.HextoDec(SYMTAB.get(OPERAND))-convert.HextoDec(PC));
-                            if (convert.HextoDec(disp)<0)
+                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND))-convert.HextoDec(PC);
+                            disp = convert.DectoHex(int_disp);
+                            if (int_disp<0)
                             {
                                 disp = disp.substring(disp.length()-3);
                             }
@@ -598,8 +600,9 @@ class pass2
                             // TA = BASE + disp
                             b=1;
                             ArrayList<String> reg = REGISTER.get("B");
-                            disp = convert.DectoHex(convert.HextoDec(SYMTAB.get(OPERAND))-convert.HextoDec(reg.get(2)));
-                            if (convert.HextoDec(disp)<0)
+                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND))-convert.HextoDec(reg.get(2));
+                            disp = convert.DectoHex(int_disp);
+                            if (int_disp<0)
                             {
                                 disp = disp.substring(disp.length()-3);
                             }
@@ -614,12 +617,15 @@ class pass2
                             addObjectCode(bw_object);
                             continue;
                         }
+                        LOCCTR=PC;
                         OBJECTCODE = code+convert.DectoHex(x*8+b*4+2*p+e)+convert.extendTo(3, disp);
                     }
                     if (format.equals("4"))
                     {
                         // assembled OPCODE, "x,b,p,e", address => 
+                        PC = convert.DectoHex(convert.HextoDec(LOCCTR)+4);
                         OBJECTCODE = convert.DectoHex(convert.HextoDec(code)+2*n+i) + "1" + convert.extendTo(5, SYMTAB.get(OPERAND));
+                        LOCCTR=PC;
                     }
                     addObjectCode(bw_object);
                     bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
