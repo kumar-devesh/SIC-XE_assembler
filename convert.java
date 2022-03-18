@@ -42,6 +42,24 @@ class convert
         return '0';
     }
 
+    public static String toHalfBytes(String a)
+    {
+        /**
+         * Input: A ASCII string value
+         * 
+         * Returns: Hexadecimal String of half bytes 
+         */
+        
+        String f="";
+        int ch=0;
+        for(int i=0; i<a.length(); ++i)
+        {
+            ch = (int) a.charAt(i);
+            f+=(toHexDig((int) ch/16)+toHexDig((int) ch%16));
+        }
+        return f;
+    }
+
     public static String extendTo(int n_dig, String a)
     {
         /**
@@ -102,5 +120,10 @@ class convert
 
         String res = Integer.toBinaryString(val);
         return res;
+    }
+    public static void main(String args[])
+    {
+        int n1=-1, n2=1;
+        System.out.println(DectoHex(n1).substring(DectoHex(n1).length()-3)+" "+DectoHex(n2));
     }
 }

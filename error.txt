@@ -1,0 +1,9 @@
+1040		0		RLOOP TD INPUT      	unable to assemble using PC/BASE relative, specify extended mode explicitly 
+1043		0		    JEQ RLOOP	unable to assemble using PC/BASE relative, specify extended mode explicitly 
+1046		0		    RD INPUT        	unable to assemble using PC/BASE relative, specify extended mode explicitly 
+104b		0		    JEQ EXIT        	unable to assemble using PC/BASE relative, specify extended mode explicitly 
+1053		0		    JLT RLOOP	unable to assemble using PC/BASE relative, specify extended mode explicitly 
+1062		0		WLOOP TD OUTPUT     	unable to assemble using PC/BASE relative, specify extended mode explicitly 
+1065		0		    JEQ WLOOP	unable to assemble using PC/BASE relative, specify extended mode explicitly 
+106b		0		    WD OUTPUT	unable to assemble using PC/BASE relative, specify extended mode explicitly 
+1070		0		    JLT WLOOP 	unable to assemble using PC/BASE relative, specify extended mode explicitly 

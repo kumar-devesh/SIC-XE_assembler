@@ -210,39 +210,47 @@ class tables
         
         list.add("0"); //number
         list.add("3"); //size in bytes
- 
+        list.add("0"); //value
         reg.put("A", (ArrayList<String>) list.clone());
 
         list.set(0, "1"); //number
         list.set(1, "3"); //size in bytes
+        list.set(2, "0"); //value
         reg.put("X", (ArrayList<String>) list.clone());
         
         list.set(0, "2"); //number
         list.set(1, "3"); //size in bytes
+        list.set(2, "0"); //value
         reg.put("L", (ArrayList<String>) list.clone());
 
         list.set(0, "3"); //number
         list.set(1, "3"); //size in bytes
+        list.set(2, "0"); //value
         reg.put("B", (ArrayList<String>) list.clone());
 
         list.set(0, "4"); //number
         list.set(1, "3"); //size in bytes
+        list.set(2, "0"); //value
         reg.put("S", (ArrayList<String>) list.clone());
 
         list.set(0, "5"); //number
         list.set(1, "3"); //size in bytes
+        list.set(2, "0"); //value
         reg.put("T", (ArrayList<String>) list.clone());
 
         list.set(0, "6"); //number
         list.set(1, "6"); //size in bytes
+        list.set(2, "0"); //value
         reg.put("F", (ArrayList<String>) list.clone());
 
         list.set(0, "8"); //number
         list.set(1, "3"); //size in bytes
+        list.set(2, "0"); //value
         reg.put("PC", (ArrayList<String>) list.clone());
 
         list.set(0, "9"); //number
         list.set(1, "3"); //size in bytes
+        list.set(2, "0"); //value
         reg.put("SW", (ArrayList<String>) list.clone());
         return reg;
     }
@@ -258,6 +266,8 @@ class tables
         assemdir.put("RESW", "y");
         assemdir.put("BASE", "y");
         assemdir.put("NOBASE", "y");
+        assemdir.put("LTORG", "y");
+        assemdir.put("USE", "y");
         return assemdir;
     }
 
@@ -297,7 +307,7 @@ class tables
         {
             String key = (String) e.nextElement();
             list = (ArrayList<String>) reg.get(key);
-            System.out.println(key+" "+list.get(0)+" "+list.get(1));
+            System.out.println(key+" "+list.get(0)+" "+list.get(1)+" "+ list.get(2));
         }
 
         Hashtable<String, String> assemdir = ASSEMDIR();
