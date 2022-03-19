@@ -7,10 +7,22 @@ class assembler
          * javac -d build *.java
          * java assembler.java {tc1/ tc2}
          */
-
-        args = new String[1];
-        args[0] = "tc1.txt";
-        pass1.main(args);
-        pass2.main(args);
+        try
+        {
+            String x = args[0];
+            pass1.main(args);
+            pass2.main(args);
+        }
+        catch (Exception e)
+        {
+            String file = "tc1.txt";
+            args = new String[1];
+            args[0] = file;
+            System.out.println("No file argument provided, running: "+file);
+            pass1.main(args);
+            System.out.println("PASS 1 completed! \nfind the outputs in intermediate file, symbol table!");
+            pass2.main(args);
+            System.out.println("PASS 2 completed! \nfind the outputs in error, listing and object files!");
+        }
     }
 }

@@ -264,6 +264,7 @@ class tables
         assemdir.put("WORD", "y");
         assemdir.put("RESB", "y");
         assemdir.put("RESW", "y");
+        assemdir.put("EQU", "y");
         assemdir.put("BASE", "y");
         assemdir.put("NOBASE", "y");
         assemdir.put("LTORG", "y");

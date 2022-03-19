@@ -50,7 +50,7 @@ class pass2
     static ArrayList<String> OP = new ArrayList<String>(); //opcode info
     static Hashtable<String, String> ASSEMDIR =  tables.ASSEMDIR();
     static Hashtable<String, ArrayList<String>> REGISTER =  tables.REGISTER();
-    static LinkedHashMap<String, String> SYMTAB = new LinkedHashMap<String, String>();
+    static LinkedHashMap<String, ArrayList<String>> SYMTAB = new LinkedHashMap<String, ArrayList<String>>();
 
     public static String get_label(String line)
     {
@@ -103,9 +103,9 @@ class pass2
         return false;
     }
 
-    public static void insert_symbol(String label, String locctr)
+    public static void insertSymbol(String label, ArrayList<String> value)
     {
-        SYMTAB.put(label, locctr);
+        SYMTAB.put(label, value);
     }
 
     public static boolean is_end(String line)
@@ -132,11 +132,11 @@ class pass2
 
     public static void printSYMTAB()
     {
-        for (Map.Entry<String, String> ele : SYMTAB.entrySet()) 
+        for (Map.Entry<String, ArrayList<String>> ele : SYMTAB.entrySet()) 
         {
             String key = ele.getKey();
-            String val = ele.getValue();
-            line = key+":"+val;
+            ArrayList<String> val = ele.getValue();
+            line = key+":"+val.get(0)+":"+val.get(1);
             System.out.println(line);
         }
     }
@@ -254,7 +254,7 @@ class pass2
     public static boolean checkPCrel()
     {
         // disp = TA - PC
-        int disp = convert.HextoDec(SYMTAB.get(OPERAND)) - convert.HextoDec(PC);
+        int disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1)) - convert.HextoDec(PC);
         if (disp>=-2048 && disp<=2047)
         {
             return true;
@@ -265,7 +265,7 @@ class pass2
     {
         // disp = TA - PC
         ArrayList<String> reg = REGISTER.get("B");
-        int disp = convert.HextoDec(SYMTAB.get(OPERAND)) - convert.HextoDec(reg.get(2));
+        int disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1)) - convert.HextoDec(reg.get(2));
         if (disp>=-2048 && disp<=2047)
         {
             return true;
@@ -346,7 +346,11 @@ class pass2
             {
                 line = line.replaceAll("\t\t", " ").trim();
                 String arr[] = line.split(" ");
-                SYMTAB.put(arr[0], arr[1]);
+
+                ArrayList<String> list = new ArrayList<String>();
+                list.add(0, arr[1]);
+                list.add(1, arr[2]);
+                SYMTAB.put(arr[0], list);
 
                 //print symbol table
                 //printSYMTAB();
@@ -431,12 +435,16 @@ class pass2
                     if (DIR.equals("BASE"))
                     {
                         // base relative addressing can be used in case pc relative does not work
-                        BASE_ADDRESS = SYMTAB.get(tokens.get(tokens.size()-1));
+                        BASE_ADDRESS = SYMTAB.get(tokens.get(tokens.size()-1)).get(1);
                         BASE=true;
                     }
                     else if (DIR.equals("NOBASE"))
                     {
                         BASE=false;
+                    }
+                    else if (DIR.equals("EQU"))
+                    {
+                        // add to Symbol table in pass 1
                     }
                     else if (DIR.equals("LTORG"))
                     {
@@ -678,7 +686,7 @@ class pass2
                         {
                             // TA = PC+disp
                             p=1;
-                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND))-convert.HextoDec(PC);
+                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1))-convert.HextoDec(PC);
                             disp = convert.DectoHex(int_disp);
                             if (int_disp<0)
                             {
@@ -691,7 +699,7 @@ class pass2
                         {
                             // TA = BASE + disp
                             b=1;
-                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND))-convert.HextoDec(BASE_ADDRESS);
+                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1))-convert.HextoDec(BASE_ADDRESS);
                             disp = convert.DectoHex(int_disp);
                             if (int_disp<0)
                             {
@@ -714,7 +722,7 @@ class pass2
                     {
                         // assembled OPCODE, "x,b,p,e", address => 
                         PC = convert.DectoHex(convert.HextoDec(LOCCTR)+4);
-                        OBJECTCODE = code + "1" + convert.extendTo(5, SYMTAB.get(OPERAND));
+                        OBJECTCODE = code + "1" + convert.extendTo(5, SYMTAB.get(OPERAND).get(1));
                         MODRECORDS.add(modcount++, ("M^"+convert.extendTo(6, convert.DectoHex(convert.HextoDec(LOCCTR)+1))+"^05"+"\n"));
                     }
                     addObjectCode(bw_object);
@@ -732,7 +740,7 @@ class pass2
                 bw_object.write(MODREC);
             }
             ArrayList<String> tokens = getTokens(line);
-            bw_object.write("END^"+convert.extendTo(6, SYMTAB.get(tokens.get(tokens.size()-1))));
+            bw_object.write("END^"+convert.extendTo(6, SYMTAB.get(tokens.get(tokens.size()-1)).get(1)));
         }
     }
 }
