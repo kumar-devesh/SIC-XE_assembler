@@ -54,3 +54,4 @@ d		0		    COMP #0                          290000
 1073		0		    RSUB                          4f0000
 .
 1076		0		OUTPUT BYTE X'05'                 05
+				    END FIRST

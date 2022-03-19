@@ -214,6 +214,11 @@ class pass2
         /**
          * add object code to text record
          */
+        if (text.equals(""))
+        {
+            String next_start = convert.extendTo(6, LOCCTR);
+            text=""; T=("T^"+convert.extendTo(6, next_start));
+        }
         if ((text.length()+OBJECTCODE.length()-charcount(text, '^'))<60)
         {
             text+=("^"+OBJECTCODE);
@@ -223,7 +228,7 @@ class pass2
         {
             TSIZE=text.length();
             int len = (int)((TSIZE-charcount(text, '^'))/2);
-            T+=("^"+convert.DectoHex(len)+text+"\n");
+            T+=("^"+convert.extendTo(2, convert.DectoHex(len))+text+"\n");
             bw_object.write(T);
 
             //String next_start = convert.DectoHex(convert.HextoDec(T.split("\\^")[1])+convert.HextoDec(T.split("\\^")[2]));
@@ -236,7 +241,7 @@ class pass2
     {
         TSIZE=text.length();
         int len = (int)((TSIZE-charcount(text, '^'))/2);
-        T+=("^"+convert.DectoHex(len)+text+"\n");
+        T+=("^"+convert.extendTo(2, convert.DectoHex(len))+text+"\n");
         bw_object.write(T);
 
         //String next_start = convert.DectoHex(convert.HextoDec(T.split("\\^")[1])+convert.HextoDec(T.split("\\^")[2]));
@@ -551,10 +556,12 @@ class pass2
                     if (OPCODE.equals("RSUB"))
                     {
                         if (format.equals("3"))
-                        {OBJECTCODE = convert.DectoHex(convert.HextoDec(code)+3)+"0000";
-                        addObjectCode(bw_object);
-                        bw_listing.write(line+spaces.substring(line.length())+OBJECTCODE+"\n");
-                        continue;}
+                        {
+                            OBJECTCODE = convert.DectoHex(convert.HextoDec(code)+3)+"0000";
+                            addObjectCode(bw_object);
+                            bw_listing.write(line+spaces.substring(line.length())+OBJECTCODE+"\n");
+                            continue;
+                        }
                     }
                     if (OPERAND.charAt(0)=='@')
                     {n=1; OPERAND = OPERAND.substring(1);}
@@ -597,9 +604,9 @@ class pass2
 
                             OBJECTCODE = code + R1 + R2;
                         }
-                        LOCCTR = PC;
                         addObjectCode(bw_object);
                         bw_listing.write(line + spaces.substring(line.length())+ OBJECTCODE + "\n");
+                        LOCCTR = PC;
                         continue;
                     }
 
@@ -650,9 +657,9 @@ class pass2
                             code = convert.extendTo(2, convert.DectoHex(convert.HextoDec(code)+2*n+1*i));
                             OBJECTCODE = code + convert.DectoHex(x*8+b*4+2*p+e) + disp;
                         }
-                        LOCCTR = PC;
                         addObjectCode(bw_object);
                         bw_listing.write(line + spaces.substring(line.length())+ OBJECTCODE + "\n");
+                        LOCCTR = PC;
                         continue;
                     }
 
@@ -709,11 +716,17 @@ class pass2
                         PC = convert.DectoHex(convert.HextoDec(LOCCTR)+4);
                         OBJECTCODE = code + "1" + convert.extendTo(5, SYMTAB.get(OPERAND));
                     }
-                    LOCCTR = PC;
                     addObjectCode(bw_object);
                     bw_listing.write(line+spaces.substring(line.length())+OBJECTCODE+"\n");
+                    LOCCTR = PC;
                 }
             }
+            writeTextRecord(bw_object); // write the last text record
+            // write modification records
+            // write the end record
+            bw_listing.write(line);
+            ArrayList<String> tokens = getTokens(line);
+            bw_object.write("END^"+convert.extendTo(6, SYMTAB.get(tokens.get(tokens.size()-1))));
         }
     }
 }
