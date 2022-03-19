@@ -44,6 +44,8 @@ class pass2
     static String PC = ""; // Program counter pointing to the next instruction
 
     static String spaces = "                                           ";
+    static int modcount = 0;
+    static ArrayList<String> MODRECORDS = new ArrayList<String>();
     static Hashtable<String, ArrayList<String>> OPTAB = tables.OPTAB();
     static ArrayList<String> OP = new ArrayList<String>(); //opcode info
     static Hashtable<String, String> ASSEMDIR =  tables.ASSEMDIR();
@@ -695,8 +697,6 @@ class pass2
                             {
                                 disp = disp.substring(disp.length()-3);
                             }
-                            printTokens(tokens);
-                            System.out.println("BASE relative applied displacement: "+disp);
                         }
 
                         // else list an error [extended mode not specified]
@@ -715,6 +715,7 @@ class pass2
                         // assembled OPCODE, "x,b,p,e", address => 
                         PC = convert.DectoHex(convert.HextoDec(LOCCTR)+4);
                         OBJECTCODE = code + "1" + convert.extendTo(5, SYMTAB.get(OPERAND));
+                        MODRECORDS.add(modcount++, ("M^"+convert.extendTo(6, convert.DectoHex(convert.HextoDec(LOCCTR)+1))+"^05"+"\n"));
                     }
                     addObjectCode(bw_object);
                     bw_listing.write(line+spaces.substring(line.length())+OBJECTCODE+"\n");
@@ -725,6 +726,11 @@ class pass2
             // write modification records
             // write the end record
             bw_listing.write(line);
+            
+            for (String MODREC:MODRECORDS)
+            {
+                bw_object.write(MODREC);
+            }
             ArrayList<String> tokens = getTokens(line);
             bw_object.write("END^"+convert.extendTo(6, SYMTAB.get(tokens.get(tokens.size()-1))));
         }

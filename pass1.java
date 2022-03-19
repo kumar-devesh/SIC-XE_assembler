@@ -112,7 +112,7 @@ class pass1
 
         // pass the path to the file as a parameter
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("tc1.txt"), StandardCharsets.UTF_8));
+          new FileInputStream(args[0]), StandardCharsets.UTF_8));
           FileWriter symboltab = new FileWriter("symtab.txt");
           BufferedWriter bw_symboltab = new BufferedWriter(symboltab);
           FileWriter intermediate = new FileWriter("intermediate.txt");
