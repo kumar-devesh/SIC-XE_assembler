@@ -3,17 +3,19 @@
 3		0		    LDB #LENGTH     			69202d
 				    BASE LENGTH			
 .    
-6		0		CLOOP +JSUB RDREC   			4e101036
-a		0		    LDA LENGTH      			32026
-10		0		    JEQ ENDFIL      			33200a
-13		0		    +JSUB WRREC     			4e10105d
-17		0		    J CLOOP         			3f2fef
+6		0		CLOOP +JSUB RDREC   			4b101036
+a		0		    LDA LENGTH      			032026
+d		0		    COMP #0			290000
+10		0		    JEQ ENDFIL      			332004
+13		0		    +JSUB WRREC     			4b10105d
+17		0		    J CLOOP         			3f2fe9
 .
-1a		0		ENDFIL LDA EOF 			32013
-1d		0		    STA BUFFER			f2019
-23		0		    STA LENGTH			f2013
-26		0		    +JSUB WRREC     			4e10105d
-2a		0		    J @RETADR       			3e2009
+1a		0		ENDFIL LDA EOF 			03200d
+1d		0		    STA BUFFER			0f2013
+20		0		    LDA #3          			10003
+23		0		    STA LENGTH			0f2007
+26		0		    +JSUB WRREC     			4b10105d
+2a		0		    J @RETADR       			3e2ffd
 .
 2d		0		EOF BYTE C'EOF'			454F46
 30		0		RETADR RESW 1			
@@ -22,32 +24,33 @@ a		0		    LDA LENGTH      			32026
 .
 . SUBROUTINE TO READ RECORD INTO BUFFER
 .
-1036		0		RDREC CLEAR X       	B401
+1036		0		RDREC CLEAR X       	B410
 1038		0		    CLEAR A         	B400
-103a		0		    CLEAR S	B404
+103a		0		    CLEAR S	B440
+103c		0		    +LDT #4096			750
 .
-1040		0		RLOOP TD INPUT      			e3201a
-1043		0		    JEQ RLOOP			332ffb
-1046		0		    RD INPUT        			db2014
+1040		0		RLOOP TD INPUT      			e32006
+1043		0		    JEQ RLOOP			332fe7
+1046		0		    RD INPUT        			db2000
 1049		0		    COMPR A,S	A004
-104b		0		    JEQ EXIT        			332007
+104b		0		    JEQ EXIT        			332ff3
 104e		0		    STCH BUFFER,X  			57c036
-1051		0		    TIXR T 	B805
-1053		0		    JLT RLOOP			3b2fe7
+1051		0		    TIXR T 	B850
+1053		0		    JLT RLOOP			3b2fd3
 1056		0		EXIT STX LENGTH			134033
 1059		0		    RSUB			4C
 105c		0		INPUT BYTE X'F1'			F1
 .
 . SUBROUTINE TO WRITE RECORD FROM BUFFER
 .
-105d		0		WRREC CLEAR X	B401
+105d		0		WRREC CLEAR X	B410
 105f		0		    LDT LENGTH			774033
-1062		0		WLOOP TD OUTPUT     			e3200d
-1065		0		    JEQ WLOOP			332ff6
+1062		0		WLOOP TD OUTPUT     			e32ff9
+1065		0		    JEQ WLOOP			332fe2
 1068		0		    LDCH BUFFER,X			53c036
-106b		0		    WD OUTPUT			df2004
-106e		0		    TIXR T	B805
-1070		0		    JLT WLOOP 			3b2fe9
+106b		0		    WD OUTPUT			df2ff0
+106e		0		    TIXR T	B850
+1070		0		    JLT WLOOP 			3b2fd5
 1073		0		    RSUB 			4C
 .
 1076		0		OUTPUT BYTE X'05'			05

@@ -354,6 +354,7 @@ class pass2
             T="T^"+LOCCTR;
             while((line=br.readLine())!=null && !is_end(line))
             {
+                PC = LOCCTR;
                 OBJECTCODE="";
                 n=0;
                 i=0;
@@ -373,6 +374,7 @@ class pass2
                 line = removeComment(line);
                 tokens = isAssemblerDirective(tokens);
                 printTokens(tokens);
+                System.out.println("LOCCTR:"+LOCCTR);
 
                 if(ASSEMDIR.containsKey(tokens.get(0)) || ASSEMDIR.containsKey(tokens.get(1)))
                 {
@@ -544,7 +546,7 @@ class pass2
                             ArrayList<String> reg = new ArrayList<String>();
                             reg = REGISTER.get(OPERAND);
                             String R = convert.extendTo(1, convert.DectoHex(Integer.parseInt(reg.get(0))));
-                            OBJECTCODE = code + "0" + R;
+                            OBJECTCODE = code + R+"0";
                         }
                         else if ((OPCODE.charAt(OPCODE.length()-1)=='R' && OPTAB.containsKey(OPCODE.substring(0, OPCODE.length()-1))) || OPCODE.equals("RMO"))
                         {
@@ -570,11 +572,46 @@ class pass2
 
                     if (isConstant())
                     {
-                        System.out.println("Instruction with a constant operand");
+                        //Instruction with a constant operand
+                        //System.out.println("constant operand:"+ OPERAND +":"+ format +":"+ code);
+
+                        PC = convert.DectoHex(convert.HextoDec(PC) + convert.HextoDec(format)); // increment PC by format 3/4
+                        String disp="";
+                        try
+                        {
+                            int operand = Integer.parseInt(OPERAND);
+                            if (operand <= 2047 && operand>=-2048)
+                            {
+                                disp = convert.DectoHex(operand);
+
+                                if (format.equals("4"))
+                                { disp = convert.extendTo(5, disp);}
+                                if (format.equals("3"))
+                                { disp = convert.extendTo(3, disp);}
+
+                                if (operand<0 && format.equals("4"))
+                                {
+                                    disp = disp.substring(disp.length()-3);
+                                }
+                                else if (operand<0 && format.equals("3"))
+                                {
+                                    disp = disp.substring(disp.length()-5);
+                                }
+                            }
+                        }
+                        // TODO: if not constant in range then add error
+                        finally
+                        {
+                            code = convert.DectoHex(convert.HextoDec(code)+2*n+1*i);
+                            OBJECTCODE = code + convert.DectoHex(x*8+b*4+2*p+e) + disp;
+                        }
+                        LOCCTR = PC;
+                        addObjectCode(bw_object);
+                        bw_listing.write(line + "\t\t\t"+ OBJECTCODE + "\n");
                         continue;
                     }
 
-                    code=convert.DectoHex(convert.HextoDec(code)+2*n+i);
+                    code=convert.extendTo(2, convert.DectoHex(convert.HextoDec(code)+2*n+i));
                     if (format.equals("4"))
                     {e=1;}
                     else if (!format.equals("4"))
@@ -624,9 +661,10 @@ class pass2
                     {
                         // assembled OPCODE, "x,b,p,e", address => 
                         PC = convert.DectoHex(convert.HextoDec(LOCCTR)+4);
-                        OBJECTCODE = convert.DectoHex(convert.HextoDec(code)+2*n+i) + "1" + convert.extendTo(5, SYMTAB.get(OPERAND));
+                        OBJECTCODE = code + "1" + convert.extendTo(5, SYMTAB.get(OPERAND));
                         LOCCTR=PC;
                     }
+                    LOCCTR = PC;
                     addObjectCode(bw_object);
                     bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                 }
