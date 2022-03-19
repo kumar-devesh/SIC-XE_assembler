@@ -37,6 +37,7 @@ class pass2
 
     static String LABEL = "";
     static String OPCODE = ""; // mnemonic opcode
+    static String BASE_ADDRESS="";
     static String OPERAND = "";
     static String OBJECTCODE=""; // object codes for data, instructions
     static String LOCCTR = ""; // Pointing to current instruction
@@ -403,12 +404,12 @@ class pass2
 
                 line = removeComment(line);
                 tokens = isAssemblerDirective(tokens);
-                printTokens(tokens);
-                System.out.println("PC before object code: "+PC);
+                //printTokens(tokens);
 
                 if(ASSEMDIR.containsKey(tokens.get(0)) || ASSEMDIR.containsKey(tokens.get(1)))
                 {
-                    System.out.println("Assembler directive found");
+                    //System.out.println("Assembler directive found");
+
                     //perform the required assembly
                     String DIR = tokens.get(0);
                     int idx=0;
@@ -422,6 +423,7 @@ class pass2
                     if (DIR.equals("BASE"))
                     {
                         // base relative addressing can be used in case pc relative does not work
+                        BASE_ADDRESS = SYMTAB.get(tokens.get(tokens.size()-1));
                         BASE=true;
                     }
                     else if (DIR.equals("NOBASE"))
@@ -480,11 +482,12 @@ class pass2
                     continue;
                 }
 
+                LOCCTR = tokens.get(0);
+                PC = LOCCTR; // set PC = LOCCTR
                 if (OPTAB.containsKey(tokens.get(2)) || (SYMTAB.containsKey(tokens.get(2)) && OPTAB.containsKey(tokens.get(3))) || 
                 OPTAB.containsKey(tokens.get(2).substring(1)) || 
                 (SYMTAB.containsKey(tokens.get(2)) && OPTAB.containsKey(tokens.get(3).substring(1)))) // format4
                 {
-                    PC = LOCCTR; // set PC = LOCCTR+instruction format
                     String code="";
                     String format="";
                     // get the OPCODE, OPERAND
@@ -534,7 +537,7 @@ class pass2
 
                     //PC = convert.DectoHex(convert.HextoDec(LOCCTR)+Integer.parseInt(format));
 
-                    if (OPCODE.equals("RSUB") || OPCODE.equals("FIX") || OPCODE.equals("FLOAT"))
+                    if (OPCODE.equals("FIX") || OPCODE.equals("FLOAT"))
                     {
                         //assemble format 1 instruction and continue
                         LOCCTR = convert.DectoHex(convert.HextoDec(LOCCTR)+1);
@@ -542,6 +545,15 @@ class pass2
                         addObjectCode(bw_object);
                         bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                         continue;
+                    }
+
+                    if (OPCODE.equals("RSUB"))
+                    {
+                        if (format.equals("3"))
+                        {OBJECTCODE = convert.DectoHex(convert.HextoDec(code)+3)+"0000";
+                        addObjectCode(bw_object);
+                        bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
+                        continue;}
                     }
                     if (OPERAND.charAt(0)=='@')
                     {n=1; OPERAND = OPERAND.substring(1);}
@@ -638,7 +650,6 @@ class pass2
                             OBJECTCODE = code + convert.DectoHex(x*8+b*4+2*p+e) + disp;
                         }
                         LOCCTR = PC;
-                        System.out.println("PC after object code: "+PC);
                         addObjectCode(bw_object);
                         bw_listing.write(line + "\t\t\t"+ OBJECTCODE + "\n");
                         continue;
@@ -651,6 +662,7 @@ class pass2
                     {
                         String disp="";
                         PC = convert.DectoHex(convert.HextoDec(LOCCTR)+3);
+
                         // if pc relative is possible
                         if (checkPCrel())
                         {
@@ -669,13 +681,14 @@ class pass2
                         {
                             // TA = BASE + disp
                             b=1;
-                            ArrayList<String> reg = REGISTER.get("B");
-                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND))-convert.HextoDec(reg.get(2));
+                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND))-convert.HextoDec(BASE_ADDRESS);
                             disp = convert.DectoHex(int_disp);
                             if (int_disp<0)
                             {
                                 disp = disp.substring(disp.length()-3);
                             }
+                            printTokens(tokens);
+                            System.out.println("BASE relative applied displacement: "+disp);
                         }
 
                         // else list an error [extended mode not specified]
@@ -696,7 +709,6 @@ class pass2
                         OBJECTCODE = code + "1" + convert.extendTo(5, SYMTAB.get(OPERAND));
                     }
                     LOCCTR = PC;
-                    System.out.println("PC after object code: "+PC);
                     addObjectCode(bw_object);
                     bw_listing.write(line+"\t\t\t"+OBJECTCODE+"\n");
                 }
