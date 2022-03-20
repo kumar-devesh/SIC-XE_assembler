@@ -554,6 +554,7 @@ class pass1
             }
 
             bw_intermediate.write(". Program Length: "+ length+"\n");
+          
             LOCCTR.replace(current_LOCCTR, LOCCTR_temp);
 
             for (Map.Entry<String, ArrayList<String>> ele : SYMTAB.entrySet()) 
