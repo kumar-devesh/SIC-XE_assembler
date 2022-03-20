@@ -49,9 +49,11 @@ class pass2
     static Hashtable<String, ArrayList<String>> OPTAB = tables.OPTAB();
     static ArrayList<String> OP = new ArrayList<String>(); //opcode info
     static Hashtable<String, String> ASSEMDIR =  tables.ASSEMDIR();
+    static Hashtable<String, String> BLKDISP =  new Hashtable<String, String>();
     static Hashtable<String, ArrayList<String>> REGISTER =  tables.REGISTER();
     static LinkedHashMap<String, ArrayList<String>> SYMTAB = new LinkedHashMap<String, ArrayList<String>>();
     static LinkedHashMap<String, ArrayList<String>> LITTAB = new LinkedHashMap<String, ArrayList<String>>();
+    static LinkedHashMap<String, ArrayList<String>> BLOCKTABLE =  new LinkedHashMap<String, ArrayList<String>>();
 
     public static String get_label(String line)
     {
@@ -150,11 +152,31 @@ class pass2
         {
             String key = ele.getKey();
             ArrayList<String> val = ele.getValue();
+            line = key+":"+val.get(0)+":"+val.get(1)+":"+val.get(2)+":"+val.get(3);
+            System.out.println(line);
+        }
+    }
+
+    public static void printBLOCKTAB()
+    {
+        System.out.println("\n\n printing the program block table \n\n");
+        for (Map.Entry<String, ArrayList<String>> ele : BLOCKTABLE.entrySet()) 
+        {
+            String key = ele.getKey();
+            ArrayList<String> val = ele.getValue();
             line = key+":"+val.get(0)+":"+val.get(1)+":"+val.get(2);
             System.out.println(line);
         }
     }
     
+    public static void printBLKDISP()
+    {
+        System.out.println("\n\n printing the program block displacements \n\n");
+        for (String blk:BLKDISP.keySet())
+        {
+            System.out.println(blk+":"+BLKDISP.get(blk));
+        }
+    }
     public static String[] getHeaderData(BufferedReader br) throws FileNotFoundException, IOException
     {
         line ="";
@@ -168,7 +190,7 @@ class pass2
             {prev=line;}
         }
         finally{}
-        String length = prev.split(":")[1].trim();
+        String length = prev.substring(2).split(":")[1].trim();
         String name = first.split(" ")[0].trim();
         String arr[] = first.split(" ");
         String address = arr[arr.length-1].trim();
@@ -333,6 +355,47 @@ class pass2
         return linerc;
     }
 
+    public static void setBLOCKDISP()
+    {
+        for (String block:BLOCKTABLE.keySet())
+        {
+            ArrayList<String> blkdata = BLOCKTABLE.get(block);
+            String idx = blkdata.get(0);
+            String start = blkdata.get(1);
+            BLKDISP.put(idx, start);
+        }
+    }
+
+    public static void setSYMTAB()
+    {
+        for (String SYMBOL:SYMTAB.keySet())
+        {
+            ArrayList<String> val = SYMTAB.get(SYMBOL);
+            if (val.get(0).equals("R")) // no need to change absolute values
+            {
+                String value = convert.DectoHex(convert.HextoDec(val.get(1)) + convert.HextoDec(getBlockDisplacement(val.get(2))));
+                val.set(1, value);
+                SYMTAB.replace(SYMBOL, val);
+            }
+        }
+    }
+
+    public static void setLITTAB()
+    {
+        for (String LITERAL:LITTAB.keySet())
+        {
+            ArrayList<String> val = LITTAB.get(LITERAL);
+            String value = convert.DectoHex(convert.HextoDec(val.get(2)) + convert.HextoDec(getBlockDisplacement(val.get(3))));
+            val.set(2, value);
+            LITTAB.replace(LITERAL, val);
+        }
+    }
+
+    public static String getBlockDisplacement(String blk_idx)
+    {
+        String disp = BLKDISP.get(blk_idx);
+        return disp;
+    }
     public static ArrayList<String> isAssemblerDirective(ArrayList<String> tokens)
     {
         int index=-1;
@@ -374,10 +437,11 @@ class pass2
                 ArrayList<String> list = new ArrayList<String>();
                 list.add(0, arr[1]);
                 list.add(1, arr[2]);
+                list.add(2, arr[3]);
                 SYMTAB.put(arr[0], list);
             }
             //print symbol table
-            //printSYMTAB();
+            printSYMTAB();
           }
         
         // read literal table entries from the littab.txt file
@@ -393,12 +457,39 @@ class pass2
                 list.add(0, arr[1]);
                 list.add(1, arr[2]);
                 list.add(2, arr[3]);
+                list.add(3, arr[4]);
                 LITTAB.put(arr[0], list);
             }
             //print literal table
             printLITTAB();
           }
+
+        // read program block table entries from the littab.txt file
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+          new FileInputStream("program_blocks.txt"), StandardCharsets.UTF_8));)
+          {
+            while((line=br.readLine()) != null)
+            {
+                line = line.replaceAll("\t\t", " ").trim();
+                String arr[] = line.split(" ");
+
+                ArrayList<String> list = new ArrayList<String>();
+                list.add(0, arr[1]);
+                list.add(1, arr[2]);
+                list.add(2, arr[3]);
+                BLOCKTABLE.put(arr[0], list);
+            }
+            //print literal table
+            printBLOCKTAB();
+          }
         
+        setBLOCKDISP();
+        printBLKDISP();
+
+        setSYMTAB(); // set symtab, littab values according to program blocks
+        setLITTAB();
+        printLITTAB();
+
         // pass the path to the file as a parameter
         String X[]={""};
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
@@ -465,7 +556,7 @@ class pass2
                 tokens = isAssemblerDirective(tokens);
                 //printTokens(tokens);
 
-                if(ASSEMDIR.containsKey(tokens.get(0)) || ASSEMDIR.containsKey(tokens.get(1)))
+                if(ASSEMDIR.containsKey(tokens.get(0)))
                 {
                     //System.out.println("Assembler directive found");
 
@@ -479,12 +570,6 @@ class pass2
                     }
 
                     int idx=0;
-                    if (ASSEMDIR.containsKey(tokens.get(1)))
-                    {
-                        DIR = tokens.get(1);
-                        idx =1;
-                    }
-
                     // processing of assembler directives
                     if (DIR.equals("BASE"))
                     {
@@ -548,7 +633,8 @@ class pass2
                     continue;
                 }
 
-                LOCCTR = tokens.get(0);
+                LOCCTR = convert.DectoHex(convert.HextoDec(tokens.get(0).split("/")[0]) + 
+                    convert.HextoDec(getBlockDisplacement(tokens.get(0).split("/")[1])));
                 PC = LOCCTR; // set PC = LOCCTR
 
                 if (tokens.size()==4 && tokens.get(2).equals("*")) // handle literal tables
@@ -807,9 +893,6 @@ class pass2
             writeTextRecord(bw_object); // write the last text record
             // write modification records
             // write the end record
-            line=last_line;
-            bw_listing.write(line);
-            
             for (String MODREC:MODRECORDS)
             {
                 bw_object.write(MODREC);

@@ -279,8 +279,6 @@ class pass1
          */
 
         // pass the path to the file as a parameter
-        args = new String[1];
-        args[0] = "tc_final.txt";
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
           new FileInputStream(args[0]), StandardCharsets.UTF_8));
@@ -382,6 +380,7 @@ class pass1
                             if (list.get(2).equals("y")) // write the literals if not previously written
                             {
                                 list.set(3, LOCCTR.get(current_LOCCTR).substring(0));
+                                list.set(4, current_LOCCTR);
                                 LITTAB.replace(LITERAL, list);
                                 LOCCTR_next.replace(current_LOCCTR, convert.DectoHex(convert.HextoDec(LOCCTR.get(current_LOCCTR).substring(0))+getSize(LITERAL.substring(1))));
                                 bw_intermediate.write(LOCCTR.get(current_LOCCTR).substring(0)+"/"+current_LOCCTR+"\t\t"+error_flag+"\t\t*\t\t"+LITERAL+"\n");
@@ -515,15 +514,46 @@ class pass1
             String LOCCTR_temp = LOCCTR.get(current_LOCCTR).substring(0);
             for (String LITERAL:LITTAB.keySet())
             {
-                if (LITTAB.get(LITERAL).get(2).equals("y"))
+                ArrayList<String> list = LITTAB.get(LITERAL);
+                if (list.get(2).equals("y"))
                 {
+                    list.set(3, LOCCTR.get(current_LOCCTR).substring(0));
+                    list.set(4, current_LOCCTR);
                     LOCCTR_next.replace(current_LOCCTR, convert.DectoHex(convert.HextoDec(LOCCTR.get(current_LOCCTR).substring(0))+getSize(LITERAL.substring(1))));
                     bw_intermediate.write(LOCCTR.get(current_LOCCTR).substring(0)+"/"+current_LOCCTR+"\t\t"+error_flag+"\t\t*\t\t"+LITERAL+"\n");
                     LOCCTR.replace(current_LOCCTR, LOCCTR_next.get(current_LOCCTR).substring(0));
                 }
             }
+
+            // write the program blocks
+            try (FileWriter pb = new FileWriter("program_blocks.txt");
+            BufferedWriter bw_pb = new BufferedWriter(pb);)
+            {
+                String curr_ptr="0"; // current block starting address
+                for (String pblk:BLOCKTABLE.keySet())
+                {
+                    /// block.add(0, "0"); //block no
+                    /// block.add(1, convert.extendTo(5, "0")); // address 
+                    /// block.add(2, "0"); // length, finally set to LOCCTR
+                    block = new ArrayList<String>();
+                    block = BLOCKTABLE.get(pblk);
+                    block.set(1, curr_ptr.substring(0));
+                    block.set(2, LOCCTR.get(block.get(0)));
+                    BLOCKTABLE.replace(pblk, block);
+                    bw_pb.write(pblk+"\t\t"+block.get(0)+"\t\t"+block.get(1)+"\t\t"+block.get(2)+"\n");
+                    curr_ptr = convert.DectoHex(convert.HextoDec(curr_ptr)+convert.HextoDec(LOCCTR.get(block.get(0))));
+                }
+            }
+
             //program length
-            bw_intermediate.write("Program Length: "+convert.DectoHex(convert.HextoDec(LOCCTR.get(current_LOCCTR).substring(0))+convert.HextoDec(starting_address))+"\n");
+            String length ="";
+            for (String pblk:BLOCKTABLE.keySet())
+            {
+                ArrayList<String> blk = BLOCKTABLE.get(pblk);
+                length = convert.DectoHex(convert.HextoDec(blk.get(1)) + convert.HextoDec(blk.get(2)));
+            }
+
+            bw_intermediate.write(". Program Length: "+ length+"\n");
             LOCCTR.replace(current_LOCCTR, LOCCTR_temp);
 
             for (Map.Entry<String, ArrayList<String>> ele : SYMTAB.entrySet()) 
@@ -553,26 +583,6 @@ class pass1
                 {
                     bw_littab.write(LITERAL+"\t\t"+list.get(0)+"\t\t"+list.get(1)+"\t\t"+list.get(3)+"\t\t"+list.get(4)+"\n");
                 }
-            }
-        }
-
-        // write the program blocks
-        try (FileWriter pb = new FileWriter("program_blocks.txt");
-        BufferedWriter bw_pb = new BufferedWriter(pb);)
-        {
-            String curr_ptr="0"; // current block starting address
-            for (String pblk:BLOCKTABLE.keySet())
-            {
-                /// block.add(0, "0"); //block no
-                /// block.add(1, convert.extendTo(5, "0")); // address 
-                /// block.add(2, "0"); // length, finally set to LOCCTR
-                ArrayList<String> block = new ArrayList<String>();
-                block = BLOCKTABLE.get(pblk);
-                block.set(1, curr_ptr.substring(0));
-                block.set(2, LOCCTR.get(block.get(0)));
-                BLOCKTABLE.replace(pblk, block);
-                bw_pb.write(pblk+"\t\t"+block.get(0)+"\t\t"+block.get(1)+"\t\t"+block.get(2)+"\n");
-                curr_ptr = convert.DectoHex(convert.HextoDec(curr_ptr)+convert.HextoDec(LOCCTR.get(block.get(0))));
             }
         }
     }
