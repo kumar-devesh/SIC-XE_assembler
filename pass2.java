@@ -448,7 +448,7 @@ class pass2
                     }
                     else if (DIR.equals("LTORG"))
                     {
-                        // print the literal table
+                        // pass since the pass1 performs required operations
                     }
                     else if (DIR.equals("USE"))
                     {
@@ -660,8 +660,11 @@ class pass2
                                 }
                                 disp = convert.extendTo(5, disp);
                             }
+                            else
+                            {
+                                bw_error.write(line+"\t\t"+"the constant operand is out of bounds");
+                            }
                         }
-                        // TODO: if not constant in range then add error
                         finally
                         {
                             code = convert.extendTo(2, convert.DectoHex(convert.HextoDec(code)+2*n+1*i));

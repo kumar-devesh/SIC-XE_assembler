@@ -24,7 +24,7 @@ class pass1
     static String LOCCTR_next = "0";
     static Hashtable<String, ArrayList<String>> OPTAB = tables.OPTAB();
     static Hashtable<String, String> ASSEMDIR =  tables.ASSEMDIR();
-    static Hashtable<String, String> LITTAB =  new Hashtable<String, String>();
+    static Hashtable<String, ArrayList<String>> LITTAB =  new Hashtable<String, ArrayList<String>>();
     static Hashtable<String, ArrayList<String>> REGISTER =  tables.REGISTER();
     static LinkedHashMap<String, ArrayList<String>> SYMTAB = new LinkedHashMap<String, ArrayList<String>>();
 
@@ -130,18 +130,55 @@ class pass1
         {l+=line.charAt(i);}
         return l;
     }
-    public static boolean isConstant(String OPERAND)
+    public static boolean isConstant(String x)
     {
         try 
         {
-            int random = Integer.parseInt(OPERAND);
+            int random = Integer.parseInt(x);
             return true;
         }
         catch(Exception e)
         {}
         return false;
     }
+    public static String getExpressionValue(String x)
+    {
+        String[] operands = x.split("[+-]");
+        String value = operands[0];
+        if (!isConstant(operands[0]))
+        {value = SYMTAB.get(operands[0]).get(1);}
 
+        ArrayList<Integer> idx = new ArrayList<Integer>();
+        int count=0;
+
+        for (int i=0; i<x.length(); i++)
+        {
+            if (x.charAt(i)=='+' || x.charAt(i)=='-')
+            {idx.add(count, i); count+=1;}
+        }
+        for (int i=1; i<operands.length; i++)
+        {
+            if (x.charAt(idx.get(i-1))=='+')
+            {
+                if (isConstant(operands[i]))
+                {
+                    value = convert.DectoHex(convert.HextoDec(value)+convert.HextoDec(operands[i]));
+                    continue;
+                }
+                value = convert.DectoHex(convert.HextoDec(value)+convert.HextoDec(SYMTAB.get(operands[i]).get(1)));
+            }
+            else if (x.charAt(idx.get(i-1))=='-')
+            {
+                if (isConstant(operands[i]))
+                {
+                    value = convert.DectoHex(convert.HextoDec(value)-convert.HextoDec(operands[i]));
+                    continue;
+                }
+                value = convert.DectoHex(convert.HextoDec(value)-convert.HextoDec(SYMTAB.get(operands[i]).get(1)));
+            }
+        }
+        return value;
+    }
     public static String getExpressionType(String x)
     {
         int n_rel=0;
@@ -202,6 +239,29 @@ class pass1
         }
         return false;
     }
+    public static void setLITABn()
+    {
+        ArrayList<String> list = new ArrayList<String>();
+        for (String LITERAL:LITTAB.keySet())
+        {
+            list = LITTAB.get(LITERAL);
+            list.set(2, "n");
+            LITTAB.replace(LITERAL, list);
+        }
+    }
+    public static String getValueOperand(String x)
+    {
+        x = x.substring(1); // remove '='
+        if (x.charAt(0)=='C')
+        {
+            x = convert.toHalfBytes(x.substring(2, x.length()-1));
+        }
+        else if (x.charAt(0)=='X')
+        {
+            x = x.substring(2, x.length()-1);
+        }
+        return x;
+    }
     public static void main(String[] args) throws Exception
     {
         /**
@@ -215,7 +275,7 @@ class pass1
 
         // pass the path to the file as a parameter
         args = new String[1];
-        args[0] = "tc1.txt";
+        args[0] = "tc2.txt";
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
           new FileInputStream(args[0]), StandardCharsets.UTF_8));
@@ -255,8 +315,8 @@ class pass1
                 OPCODE = get_opcode(line);
                 OPERAND = get_operand(line);
 
-                ///System.out.println("\n"+line);
-                ///System.out.printf("Label:{%s}, Opcode:{%s}, Operand:{%s} \n\n", LABEL,  OPCODE, OPERAND);
+                //System.out.println("\n"+line);
+                //System.out.printf("Label:{%s}, Opcode:{%s}, Operand:{%s} \n\n", LABEL,  OPCODE, OPERAND);
 
                 /**
                  * write to the symbol table
@@ -297,13 +357,20 @@ class pass1
                     if (OPCODE.equals("LTORG"))
                     {
                         // scan the literal table and write the values to intermediate file
+                        bw_intermediate.write("\t\t\t\t"+line+"\n");
+                        
+                        ArrayList<String> list = new ArrayList<String>();
                         for (String LITERAL:LITTAB.keySet())
                         {
-                            LOCCTR_next = convert.DectoHex(convert.HextoDec(LOCCTR)+getSize(LITERAL.substring(1)));
-                            bw_intermediate.write(LOCCTR+"\t\t"+error_flag+"\t\t*\t\t"+LITERAL+"\n");
-                            LOCCTR = LOCCTR_next;
+                            list = LITTAB.get(LITERAL);
+                            if (list.get(2).equals("y")) // write the literals if not previously written
+                            {
+                                LOCCTR_next = convert.DectoHex(convert.HextoDec(LOCCTR)+getSize(LITERAL.substring(1)));
+                                bw_intermediate.write(LOCCTR+"\t\t"+error_flag+"\t\t*\t\t"+LITERAL+"\n");
+                                LOCCTR = LOCCTR_next;
+                            }
                         }
-                        LITTAB = new Hashtable<String, String>();
+                        setLITABn();
                         line = br.readLine();
                         continue;
                     }
@@ -313,6 +380,8 @@ class pass1
                         LOCCTR_next = OPERAND;
                         if (OPERAND.equals("*"))
                         {LOCCTR_next=LOCCTR;}
+                        else
+                        {LOCCTR_next=OPERAND;}
                     }
 
                     else if (OPCODE.equals("WORD"))
@@ -338,6 +407,19 @@ class pass1
                         {
                             error_flag = 4; //list an error
                         }
+                        else if (OPERAND.equals("*"))
+                        {
+                            insert_symbol(LABEL, LOCCTR, getExpressionType(OPERAND));
+                        }
+                        else if (SYMTAB.containsKey(OPERAND))
+                        {
+                            insert_symbol(LABEL, SYMTAB.get(OPERAND).get(1), getExpressionType(OPERAND));
+                        }
+                        else if (isValidExpression(OPERAND))
+                        {
+                            String value = getExpressionValue(OPERAND);
+                            insert_symbol(LABEL, value, getExpressionType(OPERAND));
+                        }
                         else
                         {insert_symbol(LABEL, OPERAND, getExpressionType(OPERAND));}
                     }
@@ -353,10 +435,13 @@ class pass1
                     //increase LOCCTR by the size of instruction
                     ArrayList<String> list = (ArrayList<String>) OPTAB.get(OPCODE);
                     LOCCTR_next = convert.DectoHex(convert.HextoDec(LOCCTR)+Integer.parseInt(list.get(1)));
-
+                    list = new ArrayList<String>();
                     if (OPERAND.charAt(0)=='=')
                     {
-                        LITTAB.put(OPERAND, "y");
+                        list.add(0, getValueOperand(OPERAND));
+                        list.add(1, Integer.toString(getSize(OPERAND.substring(1))));
+                        list.add(2, "y");
+                        LITTAB.put(OPERAND, list);
                     }
                 }
                 else if (OPTAB.containsKey(OPCODE.substring(1, OPCODE.length())) && OPCODE.charAt(0)=='+')
@@ -381,14 +466,15 @@ class pass1
 
             // write the END directive
             bw_intermediate.write("\t\t\t\t"+line+"\n");
-
             for (String LITERAL:LITTAB.keySet())
             {
-                LOCCTR_next = convert.DectoHex(convert.HextoDec(LOCCTR)+getSize(LITERAL.substring(1)));
-                bw_intermediate.write(LOCCTR+"\t\t"+error_flag+"\t\t*\t\t"+LITERAL+"\n");
-                LOCCTR = LOCCTR_next;
+                if (LITTAB.get(LITERAL).get(2).equals("y"))
+                {
+                    LOCCTR_next = convert.DectoHex(convert.HextoDec(LOCCTR)+getSize(LITERAL.substring(1)));
+                    bw_intermediate.write(LOCCTR+"\t\t"+error_flag+"\t\t*\t\t"+LITERAL+"\n");
+                    LOCCTR = LOCCTR_next;
+                }
             }
-            LITTAB = new Hashtable<String, String>();
 
             //program length
             bw_intermediate.write("Program Length: "+convert.DectoHex(convert.HextoDec(LOCCTR)+convert.HextoDec(starting_address))+"\n");
@@ -399,6 +485,17 @@ class pass1
                 ArrayList<String> val = ele.getValue();
                 line = key+"\t\t"+val.get(0)+"\t\t"+val.get(1);
                 bw_symboltab.write(line+"\n");
+            }
+        }
+        // write the literal table
+        try (FileWriter littab = new FileWriter("littab.txt");
+        BufferedWriter bw_littab = new BufferedWriter(littab);)
+        {
+            ArrayList<String> list = new ArrayList<String>();
+            for (String LITERAL:LITTAB.keySet())
+            {
+                list = LITTAB.get(LITERAL);
+                bw_littab.write(LITERAL+"\t\t"+list.get(0)+"\t\t"+list.get(1)+"\n");
             }
         }
     }

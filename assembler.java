@@ -20,7 +20,7 @@ class assembler
             args[0] = file;
             System.out.println("No file argument provided, running: "+file);
             pass1.main(args);
-            System.out.println("PASS 1 completed! \nfind the outputs in intermediate file, symbol table!");
+            System.out.println("PASS 1 completed! \nfind the outputs in intermediate file, symbol table file!");
             pass2.main(args);
             System.out.println("PASS 2 completed! \nfind the outputs in error, listing and object files!");
         }
