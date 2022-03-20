@@ -282,9 +282,9 @@ class pass1
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
           new FileInputStream(args[0]), StandardCharsets.UTF_8));
-          FileWriter symboltab = new FileWriter("symtab.txt");
+          FileWriter symboltab = new FileWriter("../symtab.txt");
           BufferedWriter bw_symboltab = new BufferedWriter(symboltab);
-          FileWriter intermediate = new FileWriter("intermediate.txt");
+          FileWriter intermediate = new FileWriter("../intermediate.txt");
           BufferedWriter bw_intermediate = new BufferedWriter(intermediate);)
         {
             line = br.readLine();
@@ -524,8 +524,37 @@ class pass1
                     LOCCTR.replace(current_LOCCTR, LOCCTR_next.get(current_LOCCTR).substring(0));
                 }
             }
+
+            // write the program blocks
+            try (FileWriter pb = new FileWriter("../program_blocks.txt");
+            BufferedWriter bw_pb = new BufferedWriter(pb);)
+            {
+                String curr_ptr="0"; // current block starting address
+                for (String pblk:BLOCKTABLE.keySet())
+                {
+                    /// block.add(0, "0"); //block no
+                    /// block.add(1, convert.extendTo(5, "0")); // address 
+                    /// block.add(2, "0"); // length, finally set to LOCCTR
+                    block = new ArrayList<String>();
+                    block = BLOCKTABLE.get(pblk);
+                    block.set(1, curr_ptr.substring(0));
+                    block.set(2, LOCCTR.get(block.get(0)));
+                    BLOCKTABLE.replace(pblk, block);
+                    bw_pb.write(pblk+"\t\t"+block.get(0)+"\t\t"+block.get(1)+"\t\t"+block.get(2)+"\n");
+                    curr_ptr = convert.DectoHex(convert.HextoDec(curr_ptr)+convert.HextoDec(LOCCTR.get(block.get(0))));
+                }
+            }
+
             //program length
-            bw_intermediate.write(". Program Length: "+convert.DectoHex(convert.HextoDec(LOCCTR.get(current_LOCCTR).substring(0))+convert.HextoDec(starting_address))+"\n");
+            String length ="";
+            for (String pblk:BLOCKTABLE.keySet())
+            {
+                ArrayList<String> blk = BLOCKTABLE.get(pblk);
+                length = convert.DectoHex(convert.HextoDec(blk.get(1)) + convert.HextoDec(blk.get(2)));
+            }
+
+            bw_intermediate.write(". Program Length: "+ length+"\n");
+          
             LOCCTR.replace(current_LOCCTR, LOCCTR_temp);
 
             for (Map.Entry<String, ArrayList<String>> ele : SYMTAB.entrySet()) 
@@ -537,7 +566,7 @@ class pass1
             }
         }
         // write the literal table
-        try (FileWriter littab = new FileWriter("littab.txt");
+        try (FileWriter littab = new FileWriter("../littab.txt");
         BufferedWriter bw_littab = new BufferedWriter(littab);)
         {
             ArrayList<String> list = new ArrayList<String>();
@@ -555,26 +584,6 @@ class pass1
                 {
                     bw_littab.write(LITERAL+"\t\t"+list.get(0)+"\t\t"+list.get(1)+"\t\t"+list.get(3)+"\t\t"+list.get(4)+"\n");
                 }
-            }
-        }
-
-        // write the program blocks
-        try (FileWriter pb = new FileWriter("program_blocks.txt");
-        BufferedWriter bw_pb = new BufferedWriter(pb);)
-        {
-            String curr_ptr="0"; // current block starting address
-            for (String pblk:BLOCKTABLE.keySet())
-            {
-                /// block.add(0, "0"); //block no
-                /// block.add(1, convert.extendTo(5, "0")); // address 
-                /// block.add(2, "0"); // length, finally set to LOCCTR
-                ArrayList<String> block = new ArrayList<String>();
-                block = BLOCKTABLE.get(pblk);
-                block.set(1, curr_ptr.substring(0));
-                block.set(2, LOCCTR.get(block.get(0)));
-                BLOCKTABLE.replace(pblk, block);
-                bw_pb.write(pblk+"\t\t"+block.get(0)+"\t\t"+block.get(1)+"\t\t"+block.get(2)+"\n");
-                curr_ptr = convert.DectoHex(convert.HextoDec(curr_ptr)+convert.HextoDec(LOCCTR.get(block.get(0))));
             }
         }
     }

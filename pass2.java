@@ -257,7 +257,7 @@ class pass2
             String next_start = convert.extendTo(6, LOCCTR);
             text=""; T=("T^"+convert.extendTo(6, next_start));
         }
-        if ((text.length()+OBJECTCODE.length()-charcount(text, '^'))<60)
+        if ((text.length()+OBJECTCODE.length()-charcount(text, '^'))<=60)
         {
             text+=("^"+OBJECTCODE);
             return;
@@ -269,7 +269,6 @@ class pass2
             T+=("^"+convert.extendTo(2, convert.DectoHex(len))+text+"\n");
             bw_object.write(T);
 
-            //String next_start = convert.DectoHex(convert.HextoDec(T.split("\\^")[1])+convert.HextoDec(T.split("\\^")[2]));
             String next_start = convert.extendTo(6, LOCCTR);
             text=""; T=("T^"+convert.extendTo(6, next_start));
             text+=("^"+OBJECTCODE);
@@ -277,14 +276,22 @@ class pass2
     }
     public static void writeTextRecord(BufferedWriter bw_object) throws IOException
     {
-        TSIZE=text.length();
-        int len = (int)((TSIZE-charcount(text, '^'))/2);
-        T+=("^"+convert.extendTo(2, convert.DectoHex(len))+text+"\n");
-        bw_object.write(T);
+        if (text.equals(""))
+        {
+            String next_start = convert.extendTo(6, LOCCTR);
+            text=""; T=("T^"+convert.extendTo(6, next_start));
+        }
+        else
+        {
+            TSIZE=text.length();
+            int len = (int)((TSIZE-charcount(text, '^'))/2);
+            T+=("^"+convert.extendTo(2, convert.DectoHex(len))+text+"\n");
+            bw_object.write(T);
 
-        //String next_start = convert.DectoHex(convert.HextoDec(T.split("\\^")[1])+convert.HextoDec(T.split("\\^")[2]));
-        String next_start = convert.extendTo(6, LOCCTR);
-        text=""; T=("T^"+convert.extendTo(6, next_start));
+            //String next_start = convert.DectoHex(convert.HextoDec(T.split("\\^")[1])+convert.HextoDec(T.split("\\^")[2]));
+            String next_start = convert.extendTo(6, LOCCTR);
+            text=""; T=("T^"+convert.extendTo(6, next_start));
+        }
     }
 
     public static boolean checkPCrel()
@@ -427,7 +434,7 @@ class pass2
 
         // read symbol table entries from the symtab.txt file
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("symtab.txt"), StandardCharsets.UTF_8));)
+          new FileInputStream("../symtab.txt"), StandardCharsets.UTF_8));)
           {
             while((line=br.readLine()) != null)
             {
@@ -441,12 +448,12 @@ class pass2
                 SYMTAB.put(arr[0], list);
             }
             //print symbol table
-            printSYMTAB();
+            //printSYMTAB();
           }
         
         // read literal table entries from the littab.txt file
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("littab.txt"), StandardCharsets.UTF_8));)
+          new FileInputStream("../littab.txt"), StandardCharsets.UTF_8));)
           {
             while((line=br.readLine()) != null)
             {
@@ -461,12 +468,12 @@ class pass2
                 LITTAB.put(arr[0], list);
             }
             //print literal table
-            printLITTAB();
+            //printLITTAB();
           }
 
         // read program block table entries from the littab.txt file
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("program_blocks.txt"), StandardCharsets.UTF_8));)
+          new FileInputStream("../program_blocks.txt"), StandardCharsets.UTF_8));)
           {
             while((line=br.readLine()) != null)
             {
@@ -479,33 +486,33 @@ class pass2
                 list.add(2, arr[3]);
                 BLOCKTABLE.put(arr[0], list);
             }
-            //print literal table
-            printBLOCKTAB();
+            //print Block table
+            //printBLOCKTAB();
           }
         
         setBLOCKDISP();
-        printBLKDISP();
+        //printBLKDISP();
 
         setSYMTAB(); // set symtab, littab values according to program blocks
         setLITTAB();
-        printLITTAB();
+        //printLITTAB();
 
         // pass the path to the file as a parameter
         String X[]={""};
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("intermediate.txt"), StandardCharsets.UTF_8));)
+          new FileInputStream("../intermediate.txt"), StandardCharsets.UTF_8));)
         {
             //header record {name, length, address, first_line}
             X = getHeaderData(br);
         }
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("intermediate.txt"), StandardCharsets.UTF_8));
-          FileWriter object = new FileWriter("object.txt");
+          new FileInputStream("../intermediate.txt"), StandardCharsets.UTF_8));
+          FileWriter object = new FileWriter("../object.txt");
           BufferedWriter bw_object = new BufferedWriter(object);
-          FileWriter listing = new FileWriter("listing.txt");
+          FileWriter listing = new FileWriter("../listing.txt");
           BufferedWriter bw_listing = new BufferedWriter(listing);
-          FileWriter error = new FileWriter("error.txt");
+          FileWriter error = new FileWriter("../error.txt");
           BufferedWriter bw_error = new BufferedWriter(error);)
         {
             OPCODE = get_opcode(X[3]);
@@ -528,11 +535,9 @@ class pass2
 
             //intialize the first text record
             T="T^"+LOCCTR;
-            String last_line="";
             String end_line="";
             while((line=br.readLine())!=null)
             {
-                last_line=line; // to save the last line to be written to listing file
                 if (is_end(line))
                 {end_line = line;}
                 PC = LOCCTR;
@@ -553,6 +558,12 @@ class pass2
                 ArrayList<String> tokens = getTokens(line);
 
                 line = removeComment(line);
+                if (tokens.get(0).indexOf('/')!=-1)
+                {
+                    LOCCTR = convert.DectoHex(convert.HextoDec(tokens.get(0).split("/")[0]) + 
+                                convert.HextoDec(getBlockDisplacement(tokens.get(0).split("/")[1])));
+                    PC = LOCCTR; // set PC = LOCCTR
+                }
                 tokens = isAssemblerDirective(tokens);
                 //printTokens(tokens);
 
@@ -588,6 +599,7 @@ class pass2
                     else if (DIR.equals("USE"))
                     {
                         // switch the program block
+                        writeTextRecord(bw_object);
                     }
                     else if (DIR.equals("RESB"))
                     {
@@ -613,14 +625,12 @@ class pass2
                             OBJECTCODE = tokens.get(idx+1).substring(2, tokens.get(idx+1).length()-1);
                         }
                         TSIZE+=OBJECTCODE.length();
-                        LOCCTR = convert.DectoHex(OBJECTCODE.length()+convert.HextoDec(LOCCTR));
                         addObjectCode(bw_object);
                     }
                     else if (DIR.equals("WORD"))
                     {
                         // add the one word constant to listing, text record
                         OBJECTCODE = convert.extendTo(6, tokens.get(idx+1));
-                        LOCCTR = convert.DectoHex(OBJECTCODE.length()+convert.HextoDec(LOCCTR));
                         addObjectCode(bw_object);
                     }
 
@@ -893,9 +903,6 @@ class pass2
             writeTextRecord(bw_object); // write the last text record
             // write modification records
             // write the end record
-            line=last_line;
-            bw_listing.write(line);
-            
             for (String MODREC:MODRECORDS)
             {
                 bw_object.write(MODREC);
