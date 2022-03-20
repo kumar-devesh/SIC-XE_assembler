@@ -15,7 +15,7 @@ class assembler
         }
         catch (Exception e)
         {
-            String file = "tc2.txt";
+            String file = "tc_final.txt";
             args = new String[1];
             args[0] = file;
             System.out.println("No file argument provided, running: "+file);
