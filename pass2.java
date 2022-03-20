@@ -51,6 +51,7 @@ class pass2
     static Hashtable<String, String> ASSEMDIR =  tables.ASSEMDIR();
     static Hashtable<String, ArrayList<String>> REGISTER =  tables.REGISTER();
     static LinkedHashMap<String, ArrayList<String>> SYMTAB = new LinkedHashMap<String, ArrayList<String>>();
+    static LinkedHashMap<String, ArrayList<String>> LITTAB = new LinkedHashMap<String, ArrayList<String>>();
 
     public static String get_label(String line)
     {
@@ -132,11 +133,24 @@ class pass2
 
     public static void printSYMTAB()
     {
+        System.out.println("\n\n printing the symbol table \n\n");
         for (Map.Entry<String, ArrayList<String>> ele : SYMTAB.entrySet()) 
         {
             String key = ele.getKey();
             ArrayList<String> val = ele.getValue();
             line = key+":"+val.get(0)+":"+val.get(1);
+            System.out.println(line);
+        }
+    }
+
+    public static void printLITTAB()
+    {
+        System.out.println("\n\n printing the literal table \n\n");
+        for (Map.Entry<String, ArrayList<String>> ele : LITTAB.entrySet()) 
+        {
+            String key = ele.getKey();
+            ArrayList<String> val = ele.getValue();
+            line = key+":"+val.get(0)+":"+val.get(1)+":"+val.get(2);
             System.out.println(line);
         }
     }
@@ -254,7 +268,12 @@ class pass2
     public static boolean checkPCrel()
     {
         // disp = TA - PC
-        int disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1)) - convert.HextoDec(PC);
+        int disp=0;
+        if (OPERAND.charAt(0)=='=')
+        {disp = convert.HextoDec(LITTAB.get(OPERAND).get(2))-convert.HextoDec(PC);}
+        else
+        {disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1)) - convert.HextoDec(PC);}
+
         if (disp>=-2048 && disp<=2047)
         {
             return true;
@@ -264,8 +283,13 @@ class pass2
     public static boolean checkBASErel()
     {
         // disp = TA - PC
-        ArrayList<String> reg = REGISTER.get("B");
-        int disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1)) - convert.HextoDec(reg.get(2));
+        int disp=0;
+
+        if (OPERAND.charAt(0)=='=')
+        {disp = convert.HextoDec(LITTAB.get(OPERAND).get(2))-convert.HextoDec(BASE_ADDRESS);}
+        else
+        {disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1)) - convert.HextoDec(BASE_ADDRESS);}
+
         if (disp>=-2048 && disp<=2047)
         {
             return true;
@@ -351,10 +375,28 @@ class pass2
                 list.add(0, arr[1]);
                 list.add(1, arr[2]);
                 SYMTAB.put(arr[0], list);
-
-                //print symbol table
-                //printSYMTAB();
             }
+            //print symbol table
+            //printSYMTAB();
+          }
+        
+        // read literal table entries from the littab.txt file
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+          new FileInputStream("littab.txt"), StandardCharsets.UTF_8));)
+          {
+            while((line=br.readLine()) != null)
+            {
+                line = line.replaceAll("\t\t", " ").trim();
+                String arr[] = line.split(" ");
+
+                ArrayList<String> list = new ArrayList<String>();
+                list.add(0, arr[1]);
+                list.add(1, arr[2]);
+                list.add(2, arr[3]);
+                LITTAB.put(arr[0], list);
+            }
+            //print literal table
+            printLITTAB();
           }
         
         // pass the path to the file as a parameter
@@ -395,8 +437,13 @@ class pass2
 
             //intialize the first text record
             T="T^"+LOCCTR;
-            while((line=br.readLine())!=null && !is_end(line))
+            String last_line="";
+            String end_line="";
+            while((line=br.readLine())!=null)
             {
+                last_line=line; // to save the last line to be written to listing file
+                if (is_end(line))
+                {end_line = line;}
                 PC = LOCCTR;
                 OBJECTCODE="";
                 n=0;
@@ -424,6 +471,13 @@ class pass2
 
                     //perform the required assembly
                     String DIR = tokens.get(0);
+                    if (DIR.equals("LTORG"))
+                    {
+                        // pass since the pass1 performs required operations
+                        bw_listing.write(line+"\n");
+                        continue;
+                    }
+
                     int idx=0;
                     if (ASSEMDIR.containsKey(tokens.get(1)))
                     {
@@ -445,10 +499,6 @@ class pass2
                     else if (DIR.equals("EQU"))
                     {
                         // add to Symbol table in pass 1
-                    }
-                    else if (DIR.equals("LTORG"))
-                    {
-                        // pass since the pass1 performs required operations
                     }
                     else if (DIR.equals("USE"))
                     {
@@ -500,6 +550,16 @@ class pass2
 
                 LOCCTR = tokens.get(0);
                 PC = LOCCTR; // set PC = LOCCTR
+
+                if (tokens.size()==4 && tokens.get(2).equals("*")) // handle literal tables
+                {
+                    PC = convert.DectoHex(convert.HextoDec(PC)+Integer.parseInt(LITTAB.get(tokens.get(3)).get(1)));
+                    OBJECTCODE = LITTAB.get(tokens.get(3)).get(0);
+                    bw_listing.write(line+spaces.substring(line.length())+OBJECTCODE+"\n");
+                    addObjectCode(bw_object);
+                    continue;
+                }
+
                 if (OPTAB.containsKey(tokens.get(2)) || (SYMTAB.containsKey(tokens.get(2)) && OPTAB.containsKey(tokens.get(3))) || 
                 OPTAB.containsKey(tokens.get(2).substring(1)) || 
                 (SYMTAB.containsKey(tokens.get(2)) && OPTAB.containsKey(tokens.get(3).substring(1)))) // format4
@@ -689,7 +749,12 @@ class pass2
                         {
                             // TA = PC+disp
                             p=1;
-                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1))-convert.HextoDec(PC);
+                            int int_disp=0;
+
+                            if (OPERAND.charAt(0)=='=') //handle literal
+                            {int_disp = convert.HextoDec(LITTAB.get(OPERAND).get(2))-convert.HextoDec(PC);}
+                            else
+                            {int_disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1))-convert.HextoDec(PC);}
                             disp = convert.DectoHex(int_disp);
                             if (int_disp<0)
                             {
@@ -702,7 +767,13 @@ class pass2
                         {
                             // TA = BASE + disp
                             b=1;
-                            int int_disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1))-convert.HextoDec(BASE_ADDRESS);
+                            int int_disp=0;
+
+                            if (OPERAND.charAt(0)=='=') //handle literal
+                            {int_disp = convert.HextoDec(LITTAB.get(OPERAND).get(2))-convert.HextoDec(BASE_ADDRESS);}
+                            else
+                            {int_disp = convert.HextoDec(SYMTAB.get(OPERAND).get(1))-convert.HextoDec(BASE_ADDRESS);}
+
                             disp = convert.DectoHex(int_disp);
                             if (int_disp<0)
                             {
@@ -736,13 +807,14 @@ class pass2
             writeTextRecord(bw_object); // write the last text record
             // write modification records
             // write the end record
+            line=last_line;
             bw_listing.write(line);
             
             for (String MODREC:MODRECORDS)
             {
                 bw_object.write(MODREC);
             }
-            ArrayList<String> tokens = getTokens(line);
+            ArrayList<String> tokens = getTokens(end_line);
             bw_object.write("END^"+convert.extendTo(6, SYMTAB.get(tokens.get(tokens.size()-1)).get(1)));
         }
     }

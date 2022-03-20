@@ -24,7 +24,7 @@ class pass1
     static String LOCCTR_next = "0";
     static Hashtable<String, ArrayList<String>> OPTAB = tables.OPTAB();
     static Hashtable<String, String> ASSEMDIR =  tables.ASSEMDIR();
-    static Hashtable<String, ArrayList<String>> LITTAB =  new Hashtable<String, ArrayList<String>>();
+    static LinkedHashMap<String, ArrayList<String>> LITTAB =  new LinkedHashMap<String, ArrayList<String>>();
     static Hashtable<String, ArrayList<String>> REGISTER =  tables.REGISTER();
     static LinkedHashMap<String, ArrayList<String>> SYMTAB = new LinkedHashMap<String, ArrayList<String>>();
 
@@ -365,6 +365,8 @@ class pass1
                             list = LITTAB.get(LITERAL);
                             if (list.get(2).equals("y")) // write the literals if not previously written
                             {
+                                list.set(3, LOCCTR);
+                                LITTAB.replace(LITERAL, list);
                                 LOCCTR_next = convert.DectoHex(convert.HextoDec(LOCCTR)+getSize(LITERAL.substring(1)));
                                 bw_intermediate.write(LOCCTR+"\t\t"+error_flag+"\t\t*\t\t"+LITERAL+"\n");
                                 LOCCTR = LOCCTR_next;
@@ -441,6 +443,7 @@ class pass1
                         list.add(0, getValueOperand(OPERAND));
                         list.add(1, Integer.toString(getSize(OPERAND.substring(1))));
                         list.add(2, "y");
+                        list.add(3, LOCCTR);
                         LITTAB.put(OPERAND, list);
                     }
                 }
@@ -466,6 +469,7 @@ class pass1
 
             // write the END directive
             bw_intermediate.write("\t\t\t\t"+line+"\n");
+            String LOCCTR_temp = LOCCTR;
             for (String LITERAL:LITTAB.keySet())
             {
                 if (LITTAB.get(LITERAL).get(2).equals("y"))
@@ -475,9 +479,9 @@ class pass1
                     LOCCTR = LOCCTR_next;
                 }
             }
-
             //program length
             bw_intermediate.write("Program Length: "+convert.DectoHex(convert.HextoDec(LOCCTR)+convert.HextoDec(starting_address))+"\n");
+            LOCCTR = LOCCTR_temp;
 
             for (Map.Entry<String, ArrayList<String>> ele : SYMTAB.entrySet()) 
             {
@@ -495,7 +499,16 @@ class pass1
             for (String LITERAL:LITTAB.keySet())
             {
                 list = LITTAB.get(LITERAL);
-                bw_littab.write(LITERAL+"\t\t"+list.get(0)+"\t\t"+list.get(1)+"\n");
+                if (list.get(2).equals("y"))
+                {
+                    list.set(3, LOCCTR);
+                    LITTAB.replace(LITERAL, list);
+                    bw_littab.write(LITERAL+"\t\t"+list.get(0)+"\t\t"+list.get(1)+"\t\t"+list.get(3)+"\n");
+                }
+                else
+                {
+                    bw_littab.write(LITERAL+"\t\t"+list.get(0)+"\t\t"+list.get(1)+"\t\t"+list.get(3)+"\n");
+                }
             }
         }
     }

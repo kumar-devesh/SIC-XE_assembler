@@ -10,24 +10,27 @@ d		0		    COMP #0                          290000
 13		0		    +JSUB WRREC                     4b10105d
 17		0		    J CLOOP                         3f2fec
 .
-1a		0		ENDFIL LDA EOF                      032010
+1a		0		ENDFIL LDA =C'EOF'                  032010
 1d		0		    STA BUFFER                      0f2016
 20		0		    LDA #3                          010003
 23		0		    STA LENGTH                      0f200d
 26		0		    +JSUB WRREC                     4b10105d
 2a		0		    J @RETADR                       3e2003
 .
-2d		0		EOF BYTE C'EOF'                     454F46
+				LTORG
+2d		0		*		=C'EOF'                          454F46
 30		0		RETADR RESW 1                       
 33		0		LENGTH RESW 1                       
 36		0		BUFFER RESB 4096                    
+1036		0		BUFEND EQU *                      
+1036		0		MAXLEN EQU BUFEND-BUFFER          
 .
 . SUBROUTINE TO READ RECORD INTO BUFFER
 .
 1036		0		RDREC CLEAR X                     B410
 1038		0		    CLEAR A                       B400
 103a		0		    CLEAR S                       B440
-103c		0		    +LDT #4096                    75101000
+103c		0		    +LDT #MAXLEN                  75101000
 .
 1040		0		RLOOP TD INPUT                    e32019
 1043		0		    JEQ RLOOP                     332ffa
@@ -45,13 +48,14 @@ d		0		    COMP #0                          290000
 .
 105d		0		WRREC CLEAR X                     B410
 105f		0		    LDT LENGTH                    774000
-1062		0		WLOOP TD OUTPUT                   e32011
+1062		0		WLOOP TD =X'05'                   e32011
 1065		0		    JEQ WLOOP                     332ffa
 1068		0		    LDCH BUFFER,X                 53c003
-106b		0		    WD OUTPUT                     df2008
+106b		0		    WD =X'05'                     df2008
 106e		0		    TIXR T                        B850
 1070		0		    JLT WLOOP                     3b2fef
 1073		0		    RSUB                          4f0000
 .
-1076		0		OUTPUT BYTE X'05'                 05
-				    END FIRST
+				    END FIRST                          
+1076		0		*		=X'05'                         05
+Program Length: 1077
