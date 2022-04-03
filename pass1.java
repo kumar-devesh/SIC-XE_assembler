@@ -1,7 +1,9 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -32,6 +34,13 @@ class pass1
     static Hashtable<String, ArrayList<String>> REGISTER =  tables.REGISTER();
     static LinkedHashMap<String, ArrayList<String>> SYMTAB = new LinkedHashMap<String, ArrayList<String>>();
 
+    public static void appendError(String x) throws IOException
+    {
+        File file = new File("../error.txt");
+        FileWriter fr = new FileWriter(file, true);
+        fr.write(x);
+        fr.close();
+    }
     public static String get_label(String line)
     {
         String x = remove_comment(line.trim());
@@ -184,14 +193,14 @@ class pass1
         }
         return value;
     }
-    public static String getExpressionType(String x)
+    public static String getExpressionType(String x) throws IOException
     {
         int n_rel=0;
         String type="-1";
         int count=0;
         ArrayList<Integer> idx = new ArrayList<Integer>();
 
-        if (x.equals("*"))
+        if (x.equals("*") || line.contains("RESW") || line.contains("RESB") || line.contains("BYTE") || line.contains("WORD"))
         {return "A";}
 
         for (int i=0; i<x.length(); i++)
@@ -209,7 +218,7 @@ class pass1
         }
         catch(Exception e)
         {
-            System.out.println("Forward reference encountered");
+            appendError(line+"\nForward reference encountered\n\n");
         }
 
         for (int i=1; i<operands.length; i++)
@@ -232,7 +241,7 @@ class pass1
         return type;
     }
 
-    public static boolean isValidExpression(String x)
+    public static boolean isValidExpression(String x) throws IOException
     {
         if (x.indexOf('*')!=-1 || x.indexOf('/')!=-1)
         {
@@ -355,6 +364,10 @@ class pass1
                     {
                         //add symbol
                         String type="R";
+                        if (line.contains("RESW") || line.contains("RESB") || line.contains("BYTE") || line.contains("WORD"))
+                        {
+                            type="A";
+                        }
                         insert_symbol(LABEL, LOCCTR.get(current_LOCCTR).substring(0), type);
                     }
                 }

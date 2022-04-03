@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -55,6 +56,14 @@ class pass2
     static LinkedHashMap<String, ArrayList<String>> LITTAB = new LinkedHashMap<String, ArrayList<String>>();
     static LinkedHashMap<String, ArrayList<String>> BLOCKTABLE =  new LinkedHashMap<String, ArrayList<String>>();
 
+    public static void appendError(String x) throws IOException
+    {
+        File file = new File("../error.txt");
+        FileWriter fr = new FileWriter(file, true);
+        fr.write(x);
+        fr.close();
+    }
+    
     public static String get_label(String line)
     {
         String x = remove_comment(line.trim());
@@ -705,7 +714,9 @@ class pass2
                     }
 
                     if (format.equals(""))
-                    {System.out.println("error here"+line);}
+                    {
+                        appendError(line+"\nError! no format exists for the given instruction in the OPTAB\n\n");
+                    }
 
                     //PC = convert.DectoHex(convert.HextoDec(LOCCTR)+Integer.parseInt(format));
 
