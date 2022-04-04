@@ -9,18 +9,18 @@ class assembler
          */
         try
         {
-            String x = args[0];
-            pass1.main(args);
-            pass2.main(args);
+            String file = args[0];
+            System.out.println("file argument provided, running test case: "+file);
         }
         catch (Exception e)
         {
             String file = "../tc_final.txt";
             args = new String[1];
             args[0] = file;
-            System.out.println("No file argument provided, running: "+file);
-            pass1.main(args);
-            System.out.println("PASS 1 completed! \nfind the outputs in intermediate file, symbol table, literal table, program blocks file!");
+            System.out.println("No file argument provided, running test case: "+file);
+        }
+        finally
+        {
             pass2.main(args);
             System.out.println("PASS 2 completed! \nfind the outputs in error, listing and object files!");
         }

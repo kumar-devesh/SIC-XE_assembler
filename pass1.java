@@ -200,7 +200,7 @@ class pass1
         int count=0;
         ArrayList<Integer> idx = new ArrayList<Integer>();
 
-        if (x.equals("*") || line.contains("RESW") || line.contains("RESB") || line.contains("BYTE") || line.contains("WORD"))
+        if (x.equals("*"))
         {return "A";}
 
         for (int i=0; i<x.length(); i++)
@@ -276,7 +276,7 @@ class pass1
         }
         return x;
     }
-    public static void main(String[] args) throws Exception
+    public static String main(String[] args) throws Exception
     {
         /**
          * error flags:
@@ -288,7 +288,7 @@ class pass1
          */
 
         // pass the path to the file as a parameter
-
+        String programLength="";
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
           new FileInputStream(args[0]), StandardCharsets.UTF_8));
           FileWriter symboltab = new FileWriter("../symtab.txt");
@@ -296,7 +296,13 @@ class pass1
           FileWriter intermediate = new FileWriter("../intermediate.txt");
           BufferedWriter bw_intermediate = new BufferedWriter(intermediate);)
         {
-            line = br.readLine();
+            while((line=br.readLine())!=null)
+            {
+                if (line.contains("START") && line.charAt(0)!='.')
+                {break;}
+                else
+                {bw_intermediate.write(line+"\n");}
+            }
             String LABEL = get_label(line);
             String OPCODE = get_opcode(line);
             String OPERAND = get_operand(line);
@@ -364,10 +370,10 @@ class pass1
                     {
                         //add symbol
                         String type="R";
-                        if (line.contains("RESW") || line.contains("RESB") || line.contains("BYTE") || line.contains("WORD"))
-                        {
-                            type="A";
-                        }
+                        //if (line.contains("RESW") || line.contains("RESB") || line.contains("BYTE") || line.contains("WORD"))
+                        //{
+                        //    type="A";
+                        //}
                         insert_symbol(LABEL, LOCCTR.get(current_LOCCTR).substring(0), type);
                     }
                 }
@@ -558,15 +564,13 @@ class pass1
                 }
             }
 
-            //program length
-            String length ="";
             for (String pblk:BLOCKTABLE.keySet())
             {
                 ArrayList<String> blk = BLOCKTABLE.get(pblk);
-                length = convert.DectoHex(convert.HextoDec(blk.get(1)) + convert.HextoDec(blk.get(2)));
+                programLength = convert.DectoHex(convert.HextoDec(blk.get(1)) + convert.HextoDec(blk.get(2)));
             }
 
-            bw_intermediate.write(". Program Length: "+ length+"\n");
+            bw_intermediate.write(". Program Length: "+ programLength+"\n");
           
             LOCCTR.replace(current_LOCCTR, LOCCTR_temp);
 
@@ -599,5 +603,6 @@ class pass1
                 }
             }
         }
+        return programLength;
     }
 }

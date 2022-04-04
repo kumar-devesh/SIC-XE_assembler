@@ -186,24 +186,13 @@ class pass2
             System.out.println(blk+":"+BLKDISP.get(blk));
         }
     }
-    public static String[] getHeaderData(BufferedReader br) throws FileNotFoundException, IOException
+
+    public static String[] getHeaderData(String first, String programLength) throws FileNotFoundException, IOException
     {
-        line ="";
-        String prev="";
-        String first="";
-        try
-        {
-            prev = br.readLine();
-            first = String.valueOf(prev);
-            while((line=br.readLine()) != null)
-            {prev=line;}
-        }
-        finally{}
-        String length = prev.substring(2).split(":")[1].trim();
         String name = first.split(" ")[0].trim();
         String arr[] = first.split(" ");
         String address = arr[arr.length-1].trim();
-        String x[] = {name, convert.extendTo(6, length), convert.extendTo(6, address), first};
+        String x[] = {name, convert.extendTo(6, programLength), convert.extendTo(6, address), first};
         return x;
     }
 
@@ -431,7 +420,7 @@ class pass2
         return tokens;
     }
 
-    public static void main(String[] args) throws FileNotFoundException, IOException
+    public static void main(String[] args) throws Exception
     {
         /**
          * error flags:
@@ -440,6 +429,8 @@ class pass2
          * 2 => invalid opcode
          * 3 => invalid instruction format
          */
+        String programLength = pass1.main(args);
+        System.out.println("PASS 1 completed! \nfind the outputs in intermediate file, symbol table, literal table, program blocks file!");
 
         // read symbol table entries from the symtab.txt file
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
@@ -508,29 +499,28 @@ class pass2
 
         // pass the path to the file as a parameter
         String X[]={""};
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("../intermediate.txt"), StandardCharsets.UTF_8));)
-        {
-            //header record {name, length, address, first_line}
-            X = getHeaderData(br);
-        }
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
           new FileInputStream("../intermediate.txt"), StandardCharsets.UTF_8));
           FileWriter object = new FileWriter("../object.txt");
           BufferedWriter bw_object = new BufferedWriter(object);
           FileWriter listing = new FileWriter("../listing.txt");
-          BufferedWriter bw_listing = new BufferedWriter(listing);
-          FileWriter error = new FileWriter("../error.txt");
-          BufferedWriter bw_error = new BufferedWriter(error);)
+          BufferedWriter bw_listing = new BufferedWriter(listing);)
         {
-            OPCODE = get_opcode(X[3]);
-            if (OPCODE.equals("START"))
+            //starting address 
+            error_flag=0;
+            while((line=br.readLine())!=null)
             {
-                //starting address 
-                error_flag=0;
+                if (line.contains("START")  && line.charAt(0)!='.')
+                {break;}
+                else
+                {bw_listing.write(line+"\n");}
+            }
+            
+            if (line.contains("START"))
+            {   
+                X = getHeaderData(line, programLength);
                 bw_listing.write(X[3]+"\n");
-                line=br.readLine();
             }
 
             //header record {name, length, address, first_line}
@@ -829,7 +819,7 @@ class pass2
                             }
                             else
                             {
-                                bw_error.write(line+"\t\t"+"the constant operand is out of bounds");
+                                appendError(line+"\t\t"+"the constant operand is out of bounds");
                             }
                         }
                         finally
@@ -891,7 +881,7 @@ class pass2
                         // else list an error [extended mode not specified]
                         else
                         {
-                            bw_error.write(line+"\t"+"unable to assemble using PC/BASE relative, specify extended mode explicitly \n");
+                            appendError(line+"\t"+"unable to assemble using PC/BASE relative, specify extended mode explicitly \n");
                             OBJECTCODE = code+"0000";
                             bw_listing.write(line+spaces.substring(line.length())+OBJECTCODE+"\n");
                             addObjectCode(bw_object);

@@ -1,18 +1,60 @@
-				SUM START 0
-0/0		0		FIRST LDX #0                       050000
-3/0		0		    LDA #0                         010000
-6/0		0		    +LDB #0                        69100000
-a/0		0		    +LDB #TABLE2                   69101794
-				    BASE TABLE2                        
-e/0		0		LOOP ADD TABLE,X                   1ba013
-11/0		0		    ADD TABLE2,X                  1bc000
-14/0		0		    TIX COUNT                     2f200a
-17/0		0		    JLT LOOP                      3b2ff4
-1a/0		0		    +STA TOTAL                    0f102f04
-1e/0		0		    RSUB                          4f0000
-21/0		0		COUNT RESW 1                      
-24/0		0		TABLE RESW 2000                   
-1794/0		0		TABLE2 RESW 2000                
-2f04/0		0		TOTAL RESW 2                    
+				COPY START 0
+0/0		0		FIRST STL RETADR                   17202a
+3/0		0		    LDB #LENGTH                    69202a
+				    BASE LENGTH                        
+.    
+6/0		0		CLOOP +JSUB RDREC                  4b101033
+a/0		0		    LDA LENGTH                     032023
+d/0		0		    COMP #0                        290000
+10/0		0		    JEQ ENDFIL                    332007
+13/0		0		    +JSUB WRREC                   4b10105a
+17/0		0		    J CLOOP                       3f2fec
+.
+1a/0		0		ENDFIL LDA =C'EOF'                030000
+1d/0		0		    STA BUFFER                    0f2013
+20/0		0		    LDA #3                        010003
+23/0		0		    STA LENGTH                    0f200a
+26/0		0		    +JSUB WRREC                   4b10105a
+2a/0		0		    J @RETADR                     3e2000
+.
+2d/0		0		RETADR RESW 1                     
+30/0		0		LENGTH RESW 1                     
+33/0		0		BUFFER RESB 4096                  
+1033/0		0		BUFEND EQU *                    
+1033/0		0		MAXLEN EQU BUFEND-BUFFER        
+.
+. SUBROUTINE TO READ RECORD INTO BUFFER
+.
+1033/0		0		RDREC CLEAR X                   B410
+1035/0		0		    CLEAR A                     B400
+1037/0		0		    CLEAR S                     B440
+1039/0		0		    +LDT #MAXLEN                75101000
+.
+103d/0		0		RLOOP TD INPUT                  e32019
+1040/0		0		    JEQ RLOOP                   332ffa
+1043/0		0		    RD INPUT                    db2013
+1046/0		0		    COMPR A,S                   A004
+1048/0		0		    JEQ EXIT                    332008
+104b/0		0		    STCH BUFFER,X               57c003
+104e/0		0		    TIXR T                      B850
+1050/0		0		    JLT RLOOP                   3b2fea
+1053/0		0		EXIT STX LENGTH                 134000
+1056/0		0		    RSUB                        4f0000
+1059/0		0		INPUT BYTE X'F1'                F1
+.
+. SUBROUTINE TO WRITE RECORD FROM BUFFER
+.
+105a/0		0		WRREC CLEAR X                   B410
+105c/0		0		    LDT LENGTH                  774000
+105f/0		0		WLOOP TD =X'05'                 e32014
+1062/0		0		    JEQ WLOOP                   332ffa
+1065/0		0		    LDCH BUFFER,X               53c003
+1068/0		0		    WD =X'05'                   df200b
+106b/0		0		    TIXR T                      B850
+106d/0		0		    JLT WLOOP                   3b2fef
+1070/0		0		    RSUB                        4f0000
+.
 				    END FIRST                          
-. Program Length: 2f0a
+1073/0		0		*		=C'EOF'                      454F46
+1076/0		0		*		=X'05'                       05
+. Program Length: 1077
